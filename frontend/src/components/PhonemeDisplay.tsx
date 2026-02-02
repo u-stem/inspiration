@@ -3,7 +3,7 @@
 import type { Phoneme } from "@/types";
 
 const MORA_MAP: Record<string, Record<string, string>> = {
-  "": { a: "あ", i: "い", u: "う", e: "え", o: "お", n: "ん" },
+  "": { a: "あ", i: "い", u: "う", e: "え", o: "お", n: "ん", "": "" },
   k: { a: "か", i: "き", u: "く", e: "け", o: "こ" },
   g: { a: "が", i: "ぎ", u: "ぐ", e: "げ", o: "ご" },
   s: { a: "さ", i: "し", u: "す", e: "せ", o: "そ" },
@@ -18,12 +18,23 @@ const MORA_MAP: Record<string, Record<string, string>> = {
   y: { a: "や", u: "ゆ", o: "よ" },
   r: { a: "ら", i: "り", u: "る", e: "れ", o: "ろ" },
   w: { a: "わ", o: "を" },
-  sh: { i: "し" },
-  ch: { i: "ち" },
+  // 拗音
+  sh: { i: "し", a: "しゃ", u: "しゅ", o: "しょ" },
+  ch: { i: "ち", a: "ちゃ", u: "ちゅ", o: "ちょ" },
   ts: { u: "つ" },
-  f: { u: "ふ" },
-  j: { i: "じ" },
+  f: { u: "ふ", a: "ふぁ", i: "ふぃ", e: "ふぇ", o: "ふぉ" },
+  j: { i: "じ", a: "じゃ", u: "じゅ", o: "じょ" },
+  ky: { a: "きゃ", u: "きゅ", o: "きょ" },
+  gy: { a: "ぎゃ", u: "ぎゅ", o: "ぎょ" },
+  ny: { a: "にゃ", u: "にゅ", o: "にょ" },
+  hy: { a: "ひゃ", u: "ひゅ", o: "ひょ" },
+  by: { a: "びゃ", u: "びゅ", o: "びょ" },
+  py: { a: "ぴゃ", u: "ぴゅ", o: "ぴょ" },
+  my: { a: "みゃ", u: "みゅ", o: "みょ" },
+  ry: { a: "りゃ", u: "りゅ", o: "りょ" },
+  // 特殊
   N: { n: "ん" },
+  Q: { "": "っ" },
 };
 
 interface PhonemeDisplayProps {
@@ -36,6 +47,10 @@ interface PhonemeDisplayProps {
 }
 
 function getHiragana(phoneme: Phoneme): string {
+  // Use display field if available
+  if (phoneme.display) {
+    return phoneme.display;
+  }
   const { consonant, vowel } = phoneme;
   const consonantMap = MORA_MAP[consonant];
   if (consonantMap) {
@@ -81,17 +96,19 @@ export function PhonemeDisplay({
                   >
                     {phoneme.consonant || "-"}
                   </button>
-                  <button
-                    onClick={() => onToggleVowel?.(index)}
-                    className={`px-1.5 py-0.5 rounded transition-colors ${
-                      vowelFixed
-                        ? "bg-green-500 text-white"
-                        : "bg-slate-200 text-slate-500"
-                    }`}
-                    title={vowelFixed ? "母音: 固定" : "母音: 任意"}
-                  >
-                    {phoneme.vowel}
-                  </button>
+                  {phoneme.vowel && (
+                    <button
+                      onClick={() => onToggleVowel?.(index)}
+                      className={`px-1.5 py-0.5 rounded transition-colors ${
+                        vowelFixed
+                          ? "bg-green-500 text-white"
+                          : "bg-slate-200 text-slate-500"
+                      }`}
+                      title={vowelFixed ? "母音: 固定" : "母音: 任意"}
+                    >
+                      {phoneme.vowel}
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -104,15 +121,17 @@ export function PhonemeDisplay({
                   >
                     {phoneme.consonant || "-"}
                   </span>
-                  <span
-                    className={`px-1.5 py-0.5 rounded ${
-                      vowelFixed
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-200 text-slate-500"
-                    }`}
-                  >
-                    {phoneme.vowel}
-                  </span>
+                  {phoneme.vowel && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded ${
+                        vowelFixed
+                          ? "bg-green-100 text-green-700"
+                          : "bg-slate-200 text-slate-500"
+                      }`}
+                    >
+                      {phoneme.vowel}
+                    </span>
+                  )}
                 </>
               )}
             </div>

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Clock,
-  Heart,
-  RefreshCw,
-  Search,
-  Settings,
-  X,
-} from "lucide-react";
+import { Clock, Heart, RefreshCw, Search } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import {
@@ -21,29 +14,22 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useHistory } from "@/hooks/useHistory";
 import { useRhymeSearch } from "@/hooks/useRhymeSearch";
 import { updateIndex } from "@/lib/api";
-import type { PatternRhymeResult, Phoneme, SortOrder } from "@/types";
+import type { PatternRhymeResult, Phoneme } from "@/types";
 
-type Tab = "results" | "history" | "favorites";
-
-const SORTS: { value: SortOrder; label: string }[] = [
-  { value: "relevance", label: "関連度順" },
-  { value: "reading_asc", label: "五十音順（昇順）" },
-  { value: "reading_desc", label: "五十音順（降順）" },
-  { value: "mora_asc", label: "モーラ数（短い順）" },
-  { value: "mora_desc", label: "モーラ数（長い順）" },
-];
+type Dropdown = "history" | "favorites" | null;
+type RubyFormat = "katakana" | "half-katakana" | "hiragana";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<Tab>("results");
+  const [openDropdown, setOpenDropdown] = useState<Dropdown>(null);
   const [currentPattern, setCurrentPattern] = useState("");
   const [phonemes, setPhonemes] = useState<Phoneme[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [rubyFormat, setRubyFormat] = useState<RubyFormat>("katakana");
+  const [inputValue, setInputValue] = useState<string | undefined>(undefined);
 
   const {
     input,
-    pattern,
     results,
     total,
     page,
@@ -103,27 +89,45 @@ export default function Home() {
       }
       addToHistory(reading);
       search(reading, currentPattern);
-      setActiveTab("results");
+      setOpenDropdown(null);
     },
     [addToHistory, search, currentPattern]
   );
 
   const handleHistorySelect = useCallback(
     async (word: string) => {
+      setInputValue(word);
       const result = await analyze(word);
       if (result) {
         setPhonemes(result);
-        // 末尾一致検索用のデフォルトパターンを生成
         const patternParts = result.map(
           (p) => (p.consonant || "") + p.vowel
         );
         const newPattern = patternParts.join("") + "*";
         setCurrentPattern(newPattern);
         search(word, newPattern);
-        setActiveTab("results");
+        setOpenDropdown(null);
       }
     },
     [analyze, search]
+  );
+
+  const handleWordClick = useCallback(
+    async (word: string, reading: string) => {
+      setInputValue(reading);
+      const result = await analyze(reading);
+      if (result) {
+        setPhonemes(result);
+        const patternParts = result.map(
+          (p) => (p.consonant || "") + p.vowel
+        );
+        const newPattern = patternParts.join("") + "*";
+        setCurrentPattern(newPattern);
+        addToHistory(reading);
+        search(reading, newPattern);
+      }
+    },
+    [analyze, search, addToHistory]
   );
 
   const handleToggleFavorite = useCallback(
@@ -165,57 +169,25 @@ export default function Home() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-800">韻スピレーション</h1>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-            aria-expanded={showSettings}
-            aria-label="設定を開く"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="border-t border-slate-200 bg-slate-50">
-            <div className="max-w-7xl mx-auto px-4 py-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-medium text-slate-700">設定</h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="p-1 text-slate-400 hover:text-slate-600"
-                  aria-label="設定を閉じる"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div>
-                <label className="block text-sm text-slate-600 mb-2">
-                  辞書管理
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleUpdateIndex}
-                    disabled={isUpdating}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <RefreshCw
-                      className={`w-4 h-4 ${isUpdating ? "animate-spin" : ""}`}
-                    />
-                    {isUpdating ? "更新中..." : "辞書を更新"}
-                  </button>
-                  {updateMessage && (
-                    <span className="text-sm text-slate-500">
-                      {updateMessage}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1.5 text-xs text-slate-400">
-                  新しい単語をインデックスに追加します
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            {updateMessage && (
+              <span className="text-sm text-slate-500">{updateMessage}</span>
+            )}
+            <button
+              onClick={handleUpdateIndex}
+              disabled={isUpdating}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="辞書を更新"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isUpdating ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">
+                {isUpdating ? "更新中..." : "辞書を更新"}
+              </span>
+            </button>
           </div>
-        )}
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -225,7 +197,85 @@ export default function Home() {
             onSearch={handleSearch}
             onReadingChange={handleReadingChange}
             isLoading={isLoading}
+            value={inputValue}
+            onValueChange={setInputValue}
           />
+
+          {/* History & Favorites Buttons */}
+          {openDropdown && (
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setOpenDropdown(null)}
+            />
+          )}
+          <div className="flex gap-2 mt-3">
+            <div className="relative">
+              <button
+                onClick={() =>
+                  setOpenDropdown(openDropdown === "history" ? null : "history")
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  openDropdown === "history"
+                    ? "bg-slate-200 text-slate-900"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                履歴
+                {history.length > 0 && (
+                  <span className="text-xs text-slate-400">
+                    ({history.length})
+                  </span>
+                )}
+              </button>
+              {openDropdown === "history" && (
+                <div className="absolute top-full left-0 mt-1 w-80 max-h-96 overflow-auto bg-white rounded-xl shadow-lg border border-slate-200 z-20">
+                  <div className="p-4">
+                    <HistoryPanel
+                      history={history}
+                      onSelect={handleHistorySelect}
+                      onRemove={removeFromHistory}
+                      onClear={clearHistory}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <button
+                onClick={() =>
+                  setOpenDropdown(
+                    openDropdown === "favorites" ? null : "favorites"
+                  )
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  openDropdown === "favorites"
+                    ? "bg-slate-200 text-slate-900"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Heart className="w-4 h-4" />
+                お気に入り
+                {favorites.length > 0 && (
+                  <span className="text-xs text-slate-400">
+                    ({favorites.length})
+                  </span>
+                )}
+              </button>
+              {openDropdown === "favorites" && (
+                <div className="absolute top-full left-0 mt-1 w-96 max-h-96 overflow-auto bg-white rounded-xl shadow-lg border border-slate-200 z-20">
+                  <div className="p-4">
+                    <FavoritesPanel
+                      favorites={favorites}
+                      onRemove={removeFavorite}
+                      onExport={exportFavorites}
+                      onClear={clearFavorites}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Pattern Builder */}
           {phonemes.length > 0 && (
@@ -239,107 +289,34 @@ export default function Home() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-4 bg-slate-100 p-1 rounded-lg w-fit">
-          <button
-            onClick={() => setActiveTab("results")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "results"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            検索結果
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "history"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            履歴
-          </button>
-          <button
-            onClick={() => setActiveTab("favorites")}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "favorites"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Heart className="w-3.5 h-3.5" />
-            お気に入り
-          </button>
-        </div>
-
-        {/* Content */}
+        {/* Results */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[300px]">
-          {activeTab === "results" && (
-            <>
-              {hasResults ? (
-                <>
-                  {/* Sort Selection */}
-                  <div className="flex items-center justify-end mb-4">
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-slate-500">並び順:</label>
-                      <select
-                        value={searchOptions.sort}
-                        onChange={(e) =>
-                          updateOptions({ sort: e.target.value as SortOrder })
-                        }
-                        className="px-3 py-1.5 rounded-md text-sm bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
-                      >
-                        {SORTS.map((s) => (
-                          <option key={s.value} value={s.value}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <ResultList
-                    input={input}
-                    pattern={pattern}
-                    results={results}
-                    total={total}
-                    page={page}
-                    totalPages={totalPages}
-                    isLoading={isLoading}
-                    error={error}
-                    isFavorite={isFavorite}
-                    onToggleFavorite={handleToggleFavorite}
-                    onPageChange={goToPage}
-                  />
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                  <Search className="w-12 h-12 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">韻を探してみよう</p>
-                  <p className="text-sm mt-1">
-                    上の検索ボックスにひらがなを入力してください
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-          {activeTab === "history" && (
-            <HistoryPanel
-              history={history}
-              onSelect={handleHistorySelect}
-              onRemove={removeFromHistory}
-              onClear={clearHistory}
+          {hasResults ? (
+            <ResultList
+              input={input}
+              results={results}
+              total={total}
+              page={page}
+              totalPages={totalPages}
+              isLoading={isLoading}
+              error={error}
+              rubyFormat={rubyFormat}
+              sortOrder={searchOptions.sort}
+              isFavorite={isFavorite}
+              onToggleFavorite={handleToggleFavorite}
+              onPageChange={goToPage}
+              onRubyFormatChange={setRubyFormat}
+              onSortChange={(sort) => updateOptions({ sort })}
+              onWordClick={handleWordClick}
             />
-          )}
-          {activeTab === "favorites" && (
-            <FavoritesPanel
-              favorites={favorites}
-              onRemove={removeFavorite}
-              onExport={exportFavorites}
-              onClear={clearFavorites}
-            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <Search className="w-12 h-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium">韻を探してみよう</p>
+              <p className="text-sm mt-1">
+                上の検索ボックスにひらがなを入力してください
+              </p>
+            </div>
           )}
         </div>
       </main>

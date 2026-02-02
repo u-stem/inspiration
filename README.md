@@ -11,11 +11,30 @@
 
 ## 技術スタック
 
-- **フロントエンド**: Next.js 16, TypeScript, Tailwind CSS
-- **バックエンド**: FastAPI (Python 3.12)
-- **形態素解析**: SudachiPy + SudachiDict-full
-- **辞書データ**: NEologd seed (218万語)
-- **韻インデックス**: SQLite
+- フロントエンド: Next.js 16, TypeScript, Tailwind CSS
+- バックエンド: FastAPI (Python 3.12)
+- 形態素解析: SudachiPy + SudachiDict-full
+- 韻インデックス: SQLite
+
+### 辞書データ
+
+| 辞書 | 説明 | 有効化 |
+|------|------|--------|
+| [NEologd seed](https://github.com/neologd/mecab-ipadic-neologd) | 新語・固有名詞を含む大規模辞書（約218万語） | デフォルト |
+| [IPADIC](https://github.com/taku910/mecab) | MeCab標準辞書 | デフォルト |
+| [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) | 日英辞典（追加語彙） | `--jmdict` オプション |
+
+インデックス構築時のオプション:
+```bash
+# 基本（NEologd + IPADIC）
+bun run index:build
+
+# JMdictを含める
+cd backend && uv run python scripts/build_index.py --jmdict
+
+# NEologdのみ（IPADICなし）
+cd backend && uv run python scripts/build_index.py --no-ipadic
+```
 
 ## セットアップ
 
@@ -24,29 +43,7 @@
 - Docker & Docker Compose
 - bun (ルートのスクリプト実行用)
 
-### 1. 環境変数の設定
-
-```bash
-# バックエンド
-cat > backend/.env << 'EOF'
-ADMIN_API_KEY=your-secret-api-key-here
-EOF
-
-# フロントエンド
-cat > frontend/.env.local << 'EOF'
-ADMIN_API_KEY=your-secret-api-key-here
-EOF
-```
-
-**環境変数の説明:**
-
-| 変数 | 必須 | 説明 |
-|------|------|------|
-| `ADMIN_API_KEY` | Yes | インデックス更新用のAPIキー（両方で同じ値を設定） |
-| `CORS_ORIGINS` | No | 許可するオリジン（デフォルト: `http://localhost:3000`） |
-| `INDEX_PATH` | No | インデックスDBのパス（デフォルト: `data/rhyme_index.db`） |
-
-### 2. 起動
+### 起動
 
 ```bash
 bun run docker:up    # 全サービスを起動
@@ -62,34 +59,34 @@ bun run docker:down  # 停止
 <details>
 <summary>詳細を表示</summary>
 
-**必要条件:**
+必要条件:
 - Node.js 20+
 - Python 3.12+
 - bun
 - uv
 
-**1. 環境変数の設定:**
+1. 環境変数の設定:
 ```bash
 # 上記「環境変数の設定」を参照
 ```
 
-**2. 依存関係のインストール:**
+2. 依存関係のインストール:
 ```bash
 bun run install:all
 ```
 
-**3. インデックス構築（初回のみ）:**
+3. インデックス構築（初回のみ）:
 ```bash
 bun run index:build
 ```
 
-**4. 起動:**
+4. 起動:
 ```bash
 bun run dev:backend    # バックエンド (別ターミナル)
 bun run dev:frontend   # フロントエンド (別ターミナル)
 ```
 
-**その他のコマンド:**
+その他のコマンド:
 ```bash
 bun run test           # テスト実行
 bun run lint           # lint
@@ -131,7 +128,7 @@ GET /api/rhyme/analyze?reading=とうきょう
 
 ### POST /api/rhyme/update-index
 
-インデックスを更新（要認証: `X-API-Key` ヘッダー）
+辞書インデックスを更新
 
 ```
 POST /api/rhyme/update-index?download=false

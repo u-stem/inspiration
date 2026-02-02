@@ -19,6 +19,7 @@ class Phoneme(BaseModel):
 
     consonant: str = Field(description="Consonant: k, s, t, n, etc. Empty string for vowels.")
     vowel: str = Field(description="Vowel: a, i, u, e, o, n (for ん)")
+    display: str = Field(default="", description="Display character (hiragana)")
 
 
 class PatternSearchRequest(BaseModel):

@@ -43,10 +43,19 @@ class PatternMatcher:
 
     # Consonant characters (in patterns, these represent consonants)
     CONSONANTS = frozenset("kgsztdnhbpmyrwfcjqNQ")
-    # sh, ch, ts are multi-char consonants handled separately
 
-    # Vowel characters (n is NOT a vowel, it's the nasal consonant for ん)
-    VOWELS = frozenset("aiueo")
+    # Multi-character consonants (sh, ch, ts) are handled separately in parse()
+
+    # Consonants that can combine with 'y' to form youon (拗音)
+    # e.g., ky (きゃ), gy (ぎゃ), ny (にゃ), hy (ひゃ), by (びゃ), py (ぴゃ), my (みゃ), ry (りゃ)
+    # Note: sh, ch, j already represent palatalized sounds and don't take additional 'y'
+    YOUON_BASE_CONSONANTS = frozenset("kgnhbpmr")
+
+    # Pure vowels (can appear without a consonant)
+    PURE_VOWELS = frozenset("aiueo")
+
+    # All vowel characters (n is the vowel value for ん, only valid after consonant N)
+    VOWELS = frozenset("aiueon")
 
     def parse(self, pattern: str) -> ParsedPattern:
         """Parse a pattern string into a ParsedPattern structure.
@@ -85,11 +94,6 @@ class PatternMatcher:
                     phoneme_patterns.append(ParsedPhonemePattern(consonant=None, vowel=None))
                     i += 1
 
-            elif char in self.VOWELS:
-                # Vowel only (no consonant)
-                phoneme_patterns.append(ParsedPhonemePattern(consonant="", vowel=char))
-                i += 1
-
             elif char in self.CONSONANTS:
                 # Consonant - check for following vowel or wildcard
                 consonant = char
@@ -105,6 +109,10 @@ class PatternMatcher:
                     elif char == "t" and next_char == "s":
                         consonant = "ts"
                         i += 1
+                    elif next_char == "y" and char in self.YOUON_BASE_CONSONANTS:
+                        # 拗音: ky, gy, ny, hy, by, py, my, ry
+                        consonant = char + "y"
+                        i += 1
 
                 i += 1
                 # Check for vowel after consonant
@@ -119,6 +127,12 @@ class PatternMatcher:
                 else:
                     # Consonant only (match any vowel)
                     phoneme_patterns.append(ParsedPhonemePattern(consonant=consonant, vowel=None))
+
+            elif char in self.PURE_VOWELS:
+                # Pure vowel only (no consonant) - aiueo only, not 'n'
+                phoneme_patterns.append(ParsedPhonemePattern(consonant="", vowel=char))
+                i += 1
+
             else:
                 logger.warning(f"Unknown character in pattern: {char!r}")
                 i += 1

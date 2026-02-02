@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.core.config import settings
 from app.models.schemas import (
@@ -43,9 +43,13 @@ def _analyze_reading(reading: str) -> PatternAnalyzeResponse:
     analysis = analyze_hiragana(reading)
 
     phonemes = [
-        Phoneme(consonant=p.consonant, vowel=p.vowel or "")
+        Phoneme(
+            consonant=p.consonant,
+            vowel=p.vowel or "",
+            display=katakana_to_hiragana(p.display),
+        )
         for p in phonemes_raw
-        if p.vowel is not None
+        if p.vowel is not None or p.consonant == "Q"
     ]
 
     return PatternAnalyzeResponse(
@@ -123,8 +127,10 @@ def _extract_patterns(parsed) -> tuple[str | None, str | None, bool, bool]:
                 break
 
         # Handle consonants (only if vowel is also fixed)
+        # Skip empty consonants as DB stores only non-empty consonants
         if p.consonant is not None and not has_vowel_wildcard:
-            consonants.append(p.consonant)
+            if p.consonant:  # Only add non-empty consonants
+                consonants.append(p.consonant)
         else:
             has_consonant_wildcard = True
 
@@ -205,9 +211,13 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
         for score, _, entry in page_matches:
             phonemes_raw = extract_phonemes_detailed(entry.reading)
             phonemes = [
-                Phoneme(consonant=p.consonant, vowel=p.vowel or "")
+                Phoneme(
+                    consonant=p.consonant,
+                    vowel=p.vowel or "",
+                    display=katakana_to_hiragana(p.display),
+                )
                 for p in phonemes_raw
-                if p.vowel is not None
+                if p.vowel is not None or p.consonant == "Q"
             ]
             results.append(
                 PatternRhymeResult(
@@ -255,14 +265,6 @@ def analyze_reading(reading: str = Query(..., min_length=1)) -> PatternAnalyzeRe
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e}") from e
 
 
-def _verify_admin_key(x_api_key: str = Header(default="")) -> None:
-    """Verify admin API key for protected endpoints."""
-    if not settings.admin_api_key:
-        raise HTTPException(status_code=503, detail="Admin API not configured")
-    if x_api_key != settings.admin_api_key:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-
-
 def _import_build_index():
     """Import build_index module using importlib to avoid sys.path manipulation."""
     script_path = Path(__file__).parent.parent.parent / "scripts" / "build_index.py"
@@ -277,13 +279,8 @@ def _import_build_index():
 @router.post("/update-index", response_model=IndexUpdateResponse)
 def update_index_endpoint(
     download: bool = Query(default=False, description="NEologdシードデータを再ダウンロードするか"),
-    _: None = Depends(_verify_admin_key),
 ) -> IndexUpdateResponse:
-    """
-    インデックスを差分更新する（新規単語のみ追加）
-
-    Requires X-API-Key header with valid admin API key.
-    """
+    """インデックスを差分更新する（新規単語のみ追加）"""
     try:
         build_index = _import_build_index()
 

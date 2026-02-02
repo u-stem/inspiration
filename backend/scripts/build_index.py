@@ -36,10 +36,6 @@ IPADIC_FILES = [
     "Adverb.csv",
 ]
 
-WIKIPEDIA_TITLES_URL = (
-    "https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-all-titles-in-ns0.gz"
-)
-
 JMDICT_URL = "http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz"
 
 DOWNLOAD_TIMEOUT = 60  # seconds
@@ -76,6 +72,8 @@ def is_valid_word(surface: str) -> bool:
         return False
 
     return not any(c.isdigit() or c in "０１２３４５６７８９" for c in surface)
+
+
 
 
 def download_jmdict(cache_dir: Path) -> Path:
@@ -151,38 +149,6 @@ def get_jmdict_words(cache_dir: Path) -> list[tuple[str, str]]:
     return words
 
 
-def download_wikipedia_titles(cache_dir: Path) -> Path:
-    """Download Wikipedia Japanese article titles."""
-    import gzip
-
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    gz_path = cache_dir / "jawiki-titles.gz"
-    txt_path = cache_dir / "jawiki-titles.txt"
-
-    if txt_path.exists():
-        print(f"Using cached: {txt_path}")
-        return txt_path
-
-    print(f"Downloading: {WIKIPEDIA_TITLES_URL}")
-    original_timeout = socket.getdefaulttimeout()
-    try:
-        socket.setdefaulttimeout(120)  # Larger file, longer timeout
-        urllib.request.urlretrieve(WIKIPEDIA_TITLES_URL, gz_path)
-    except (URLError, TimeoutError) as e:
-        raise RuntimeError(f"Download failed: {e}") from e
-    finally:
-        socket.setdefaulttimeout(original_timeout)
-
-    print(f"Extracting: {gz_path}")
-    with gzip.open(gz_path, "rt", encoding="utf-8") as f_in, open(
-        txt_path, "w", encoding="utf-8"
-    ) as f_out:
-        f_out.write(f_in.read())
-
-    gz_path.unlink()
-    return txt_path
-
-
 # Cached Sudachi tokenizer for efficiency
 _sudachi_tokenizer = None
 
@@ -216,49 +182,6 @@ def get_reading_from_sudachi(surface: str) -> str | None:
     except Exception as e:
         print(f"Warning: Failed to get reading for text: {e}")
     return None
-
-
-def get_wikipedia_words(cache_dir: Path, max_words: int = 500000) -> list[tuple[str, str]]:
-    """Get words from Wikipedia Japanese article titles.
-
-    Args:
-        cache_dir: Cache directory
-        max_words: Maximum number of words to process (Wikipedia has millions)
-    """
-    txt_path = download_wikipedia_titles(cache_dir)
-    words: list[tuple[str, str]] = []
-
-    print(f"Processing Wikipedia titles (max {max_words})...")
-    with open(txt_path, encoding="utf-8") as f:
-        # Skip header line
-        next(f, None)
-
-        processed = 0
-        for line in f:
-            if processed >= max_words:
-                break
-
-            title = line.strip()
-
-            # Skip invalid titles
-            if not title or not is_valid_word(title):
-                continue
-
-            # Skip titles that are too long
-            if len(title) > 15:
-                continue
-
-            # Get reading using SudachiPy
-            reading = get_reading_from_sudachi(title)
-            if reading and len(reading) <= 20:
-                words.append((title, reading))
-                processed += 1
-
-                if processed % 10000 == 0:
-                    print(f"  Processed {processed} titles...")
-
-    print(f"Loaded {len(words)} words from Wikipedia titles")
-    return words
 
 
 def download_ipadic(cache_dir: Path) -> list[Path]:
@@ -415,14 +338,31 @@ def get_neologd_words(cache_dir: Path) -> list[tuple[str, str]]:
     return unique_words
 
 
+def select_reading(dict_reading: str, surface: str) -> str:
+    """Select the best reading using hybrid approach.
+
+    Rules:
+    - If dict reading is more than 1.3x longer than Sudachi reading,
+      use Sudachi (likely a concatenated reading error in dictionary)
+    - Otherwise use dict reading (preserves proper nouns like anime titles)
+    """
+    sudachi_reading = get_reading_from_sudachi(surface)
+    if not sudachi_reading:
+        return dict_reading
+
+    # If dict reading is significantly longer, it's likely a concatenated error
+    if len(dict_reading) > len(sudachi_reading) * 1.3:
+        return sudachi_reading
+
+    return dict_reading
+
+
 def build_sqlite_index(
     output_path: str = "data/rhyme_index.db",
     include_ipadic: bool = True,
     include_jmdict: bool = False,
-    include_wikipedia: bool = False,
-    wikipedia_max: int = 500000,
 ) -> None:
-    """Build SQLite rhyme index from NEologd seed data and optionally IPADIC/JMdict/Wikipedia."""
+    """Build SQLite rhyme index from NEologd seed data and optionally IPADIC/JMdict."""
     cache_dir = Path("/tmp/neologd_cache")
 
     print("Downloading NEologd seed data...")
@@ -457,19 +397,6 @@ def build_sqlite_index(
                 added_from_jmdict += 1
         print(f"Added {added_from_jmdict} words from JMdict")
 
-    if include_wikipedia:
-        print("\nDownloading Wikipedia titles...")
-        wiki_words = get_wikipedia_words(cache_dir, max_words=wikipedia_max)
-
-        # Merge: add Wikipedia words not already in dictionary
-        added_from_wiki = 0
-        for surface, reading in wiki_words:
-            if surface not in existing_surfaces:
-                words.append((surface, reading))
-                existing_surfaces.add(surface)
-                added_from_wiki += 1
-        print(f"Added {added_from_wiki} words from Wikipedia")
-
     print(f"Total unique words: {len(words)}")
 
     output = Path(output_path)
@@ -483,10 +410,19 @@ def build_sqlite_index(
     index.init_db()
 
     indexed = 0
+    used_dict = 0
+    used_sudachi = 0
     error_count = 0
-    for i, (word, reading) in enumerate(words):
+    for i, (word, dict_reading) in enumerate(words):
         if i % 50000 == 0:
             print(f"Processing {i}/{len(words)}...")
+
+        # Select reading using hybrid approach
+        reading = select_reading(dict_reading, word)
+        if reading == dict_reading:
+            used_dict += 1
+        else:
+            used_sudachi += 1
 
         try:
             phoneme_analysis = analyze(reading)
@@ -513,6 +449,7 @@ def build_sqlite_index(
 
     size_mb = output.stat().st_size / (1024 * 1024)
     print(f"Done! Indexed {indexed} words")
+    print(f"  Used dict reading: {used_dict}, Used Sudachi: {used_sudachi}")
     print(f"Database size: {size_mb:.2f} MB")
 
 
@@ -716,17 +653,6 @@ if __name__ == "__main__":
         help="Include JMdict (Japanese-English dictionary)",
     )
     parser.add_argument(
-        "--wikipedia",
-        action="store_true",
-        help="Include Wikipedia Japanese article titles",
-    )
-    parser.add_argument(
-        "--wikipedia-max",
-        type=int,
-        default=500000,
-        help="Maximum Wikipedia titles to process (default: 500000)",
-    )
-    parser.add_argument(
         "--add",
         action="store_true",
         help="Interactive mode to add words to existing index",
@@ -767,6 +693,4 @@ if __name__ == "__main__":
             args.output,
             include_ipadic=not args.no_ipadic,
             include_jmdict=args.jmdict,
-            include_wikipedia=args.wikipedia,
-            wikipedia_max=args.wikipedia_max,
         )

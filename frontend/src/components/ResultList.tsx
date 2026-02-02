@@ -3,34 +3,58 @@
 import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 import { ResultCard } from "./ResultCard";
-import type { PatternAnalyzeResponse, PatternRhymeResult } from "@/types";
+import type { PatternAnalyzeResponse, PatternRhymeResult, SortOrder } from "@/types";
+
+type RubyFormat = "katakana" | "half-katakana" | "hiragana";
+
+const SORTS: { value: SortOrder; label: string }[] = [
+  { value: "relevance", label: "関連度順" },
+  { value: "reading_asc", label: "五十音順（昇順）" },
+  { value: "reading_desc", label: "五十音順（降順）" },
+  { value: "mora_asc", label: "モーラ数（短い順）" },
+  { value: "mora_desc", label: "モーラ数（長い順）" },
+];
+
+const RUBY_FORMATS: { value: RubyFormat; label: string }[] = [
+  { value: "katakana", label: "カタカナ" },
+  { value: "half-katakana", label: "半角カタカナ" },
+  { value: "hiragana", label: "ひらがな" },
+];
 
 interface ResultListProps {
   input: PatternAnalyzeResponse | null;
-  pattern: string;
   results: PatternRhymeResult[];
   total: number;
   page: number;
   totalPages: number;
   isLoading: boolean;
   error: string | null;
+  rubyFormat: RubyFormat;
+  sortOrder: SortOrder;
   isFavorite: (word: string) => boolean;
   onToggleFavorite: (result: PatternRhymeResult) => void;
   onPageChange: (page: number) => void;
+  onRubyFormatChange: (format: RubyFormat) => void;
+  onSortChange: (sort: SortOrder) => void;
+  onWordClick: (word: string, reading: string) => void;
 }
 
 export function ResultList({
   input,
-  pattern,
   results,
   total,
   page,
   totalPages,
   isLoading,
   error,
+  rubyFormat,
+  sortOrder,
   isFavorite,
   onToggleFavorite,
   onPageChange,
+  onRubyFormatChange,
+  onSortChange,
+  onWordClick,
 }: ResultListProps) {
   if (error) {
     return (
@@ -88,49 +112,49 @@ export function ResultList({
 
   return (
     <div className="space-y-6">
-      {/* Input Analysis */}
-      <div className="p-4 bg-slate-50 rounded-xl">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-          入力の解析
-        </p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div>
-            <span className="text-xl font-bold text-slate-800">{input.reading}</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="inline-flex items-center px-2 py-1 text-xs font-mono bg-blue-100 text-blue-700 rounded">
-              母音: {input.vowel_pattern}
-            </span>
-            {input.consonant_pattern && (
-              <span className="inline-flex items-center px-2 py-1 text-xs font-mono bg-emerald-100 text-emerald-700 rounded">
-                子音: {input.consonant_pattern}
-              </span>
-            )}
-          </div>
-        </div>
-        {pattern && (
-          <div className="mt-2">
-            <span className="text-xs text-slate-500">検索パターン: </span>
-            <code className="text-xs font-mono text-slate-700 bg-slate-200 px-1.5 py-0.5 rounded">
-              {pattern}
-            </code>
-          </div>
-        )}
-      </div>
-
       {/* Results Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <h2 className="text-lg font-bold text-slate-800">
           検索結果
           <span className="ml-2 text-sm font-normal text-slate-500">
             {total.toLocaleString()}件
           </span>
         </h2>
-        {totalPages > 1 && (
-          <span className="text-sm text-slate-500">
-            {page} / {totalPages} ページ
-          </span>
-        )}
+        <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs text-slate-500">ルビ:</label>
+            <select
+              value={rubyFormat}
+              onChange={(e) => onRubyFormatChange(e.target.value as RubyFormat)}
+              className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+            >
+              {RUBY_FORMATS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs text-slate-500">並び順:</label>
+            <select
+              value={sortOrder}
+              onChange={(e) => onSortChange(e.target.value as SortOrder)}
+              className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+            >
+              {SORTS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {totalPages > 1 && (
+            <span className="text-xs text-slate-500">
+              {page} / {totalPages} ページ
+            </span>
+          )}
+        </div>
       </div>
 
       {/* No Results Message */}
@@ -150,8 +174,10 @@ export function ResultList({
             <ResultCard
               key={result.word}
               result={result}
+              rubyFormat={rubyFormat}
               isFavorite={isFavorite(result.word)}
               onToggleFavorite={() => onToggleFavorite(result)}
+              onWordClick={onWordClick}
             />
           ))}
         </div>

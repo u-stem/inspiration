@@ -8,6 +8,7 @@ export type SortOrder =
 export interface Phoneme {
   consonant: string;
   vowel: string;
+  display?: string;
 }
 
 export interface PatternSearchRequest {

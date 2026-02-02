@@ -3,6 +3,14 @@ from dataclasses import dataclass
 # 小書き仮名（拗音用、モーラカウント時にスキップ）
 SMALL_KANA = frozenset("ャュョァィゥェォ")
 
+# 小書き仮名のうち拗音を形成するもの（ャ、ュ、ョ）
+YOUON_SMALL_KANA = frozenset("ャュョ")
+
+# 既に拗音的な子音、または拗音を形成しない子音（'y' を追加しない）
+# sh (シャ行), ch (チャ行), j (ジャ行), y (ヤ行) - 既に拗音的
+# ts (ツ), Q (促音) - 拗音を形成しない（ツャ、ッャは無効/非標準）
+PALATALIZED_CONSONANTS = frozenset(("sh", "ch", "j", "y", "ts", "Q"))
+
 # カタカナから母音へのマッピング
 VOWEL_MAP: dict[str, str | None] = {
     # 母音
@@ -202,6 +210,7 @@ CONSONANT_MAP: dict[str, str] = {
 class Phoneme:
     vowel: str | None
     consonant: str
+    display: str = ""  # Original character(s) for display
 
 
 @dataclass(frozen=True)
@@ -221,22 +230,31 @@ def extract_phonemes(katakana: str) -> list[Phoneme]:
     for char in katakana:
         if char == "ー" and prev_vowel:
             # 長音: 直前の母音を繰り返す
-            phonemes.append(Phoneme(vowel=prev_vowel, consonant=""))
+            phonemes.append(Phoneme(vowel=prev_vowel, consonant="", display=char))
             continue
 
         vowel = VOWEL_MAP.get(char)
         consonant = CONSONANT_MAP.get(char, "")
 
         # 小書き仮名の処理（キャ、シュなどの拗音）
-        if char in ("ャ", "ュ", "ョ", "ァ", "ィ", "ゥ", "ェ", "ォ") and phonemes:
-            # 直前の音素の母音を置き換える
+        if char in SMALL_KANA and phonemes:
+            # 直前の音素の母音を置き換え、displayに小書き仮名を追加
             prev = phonemes[-1]
-            phonemes[-1] = Phoneme(vowel=vowel, consonant=prev.consonant)
+            # 拗音（ャ、ュ、ョ）の場合、子音に 'y' を追加
+            # ただし sh, ch, j など既に拗音的な子音の場合は追加しない
+            new_consonant = prev.consonant
+            if char in YOUON_SMALL_KANA and prev.consonant not in PALATALIZED_CONSONANTS:
+                new_consonant = prev.consonant + "y"
+            phonemes[-1] = Phoneme(
+                vowel=vowel,
+                consonant=new_consonant,
+                display=prev.display + char,
+            )
             prev_vowel = vowel
             continue
 
         if vowel is not None or consonant:
-            phonemes.append(Phoneme(vowel=vowel, consonant=consonant))
+            phonemes.append(Phoneme(vowel=vowel, consonant=consonant, display=char))
             prev_vowel = vowel
 
     return phonemes

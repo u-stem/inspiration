@@ -28,6 +28,16 @@ function buildPattern(
     const consonantFixed = fixConsonants[i] ?? true;
     const vowelFixed = fixVowels[i] ?? true;
 
+    // Handle special case: 促音 (Q with no vowel)
+    if (phoneme.consonant === "Q" && !phoneme.vowel) {
+      if (consonantFixed) {
+        parts.push("Q");
+      } else {
+        parts.push("_");
+      }
+      continue;
+    }
+
     if (!consonantFixed && !vowelFixed) {
       parts.push("_");
     } else if (consonantFixed && vowelFixed) {

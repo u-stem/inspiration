@@ -7,6 +7,8 @@ interface HiraganaInputProps {
   onSearch: (reading: string) => void;
   onReadingChange?: (reading: string) => void;
   isLoading?: boolean;
+  value?: string;
+  onValueChange?: (value: string) => void;
 }
 
 const HIRAGANA_REGEX = /^[ぁ-ゖー]*$/;
@@ -25,16 +27,33 @@ export function HiraganaInput({
   onSearch,
   onReadingChange,
   isLoading = false,
+  value: controlledValue,
+  onValueChange,
 }: HiraganaInputProps) {
-  const [value, setValue] = useState("");
+  const [internalValue, setInternalValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const isComposingRef = useRef(false);
+
+  // Use controlled value if provided, otherwise use internal state
+  const isControlled = controlledValue !== undefined;
+  const value = isControlled ? katakanaToHiragana(controlledValue) : internalValue;
+
+  const updateValue = useCallback(
+    (newValue: string) => {
+      if (isControlled) {
+        onValueChange?.(newValue);
+      } else {
+        setInternalValue(newValue);
+      }
+    },
+    [isControlled, onValueChange]
+  );
 
   const handleChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value;
       const converted = katakanaToHiragana(raw);
-      setValue(converted);
+      updateValue(converted);
 
       if (isComposingRef.current) {
         return;
@@ -47,7 +66,7 @@ export function HiraganaInput({
         onReadingChange?.(converted);
       }
     },
-    [onReadingChange]
+    [updateValue, onReadingChange]
   );
 
   const handleCompositionStart = useCallback(() => {

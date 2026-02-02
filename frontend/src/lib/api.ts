@@ -58,25 +58,13 @@ export async function analyzeReading(
 export async function updateIndex(
   download: boolean = false,
 ): Promise<IndexUpdateResponse> {
-  // サーバーサイドの API Route 経由でバックエンドを呼び出す
   const params = new URLSearchParams();
   if (download) {
     params.set("download", "true");
   }
-
-  const response = await fetch(`/api/admin/update-index?${params}`, {
+  return fetchApi<IndexUpdateResponse>(`/rhyme/update-index?${params}`, {
     method: "POST",
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch((e) => {
-      console.error("Failed to parse error response:", e);
-      return {};
-    });
-    throw new ApiError(response.status, errorData.error || "Update failed");
-  }
-
-  return response.json();
 }
 
 export { ApiError };

@@ -36,6 +36,7 @@ services:
       - ./frontend/public:/app/public
     environment:
       - WATCHPACK_POLLING=true
+      - BACKEND_URL=http://backend:8000
     env_file:
       - path: ./frontend/.env.local
         required: false

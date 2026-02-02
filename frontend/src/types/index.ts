@@ -65,3 +65,34 @@ export interface IndexUpdateResponse {
 }
 
 export type PresetType = "suffix" | "prefix" | "vowel" | "contains" | "exact" | "custom";
+
+export type SearchLanguage = "ja" | "en";
+
+// English rhyme search types
+export interface EnglishRhymeResult {
+  word: string;
+  pronunciation: string;
+  katakana: string;
+  vowel_pattern: string;
+  consonant_pattern: string;
+  syllable_count: number;
+  score: number;
+}
+
+export interface EnglishSearchRequest {
+  reading: string;
+  pattern: string;
+  sort: SortOrder;
+  limit: number;
+  offset: number;
+}
+
+export interface EnglishSearchResponse {
+  input: PatternAnalyzeResponse;
+  pattern: string;
+  results: EnglishRhymeResult[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}

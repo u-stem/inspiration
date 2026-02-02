@@ -1,6 +1,8 @@
+export { EnglishResultCard } from "./EnglishResultCard";
 export { FavoritesPanel } from "./FavoritesPanel";
 export { HistoryPanel } from "./HistoryPanel";
 export { HiraganaInput } from "./HiraganaInput";
+export { LanguageTab } from "./LanguageTab";
 export { PatternBuilder } from "./PatternBuilder";
 export { PhonemeDisplay } from "./PhonemeDisplay";
 export { ResultCard } from "./ResultCard";

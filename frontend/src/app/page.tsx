@@ -1,32 +1,39 @@
 "use client";
 
-import { Clock, Heart, RefreshCw, Search } from "lucide-react";
+import { Heart, Search } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import {
   FavoritesPanel,
-  HistoryPanel,
   HiraganaInput,
   PatternBuilder,
   ResultList,
 } from "@/components";
+import { useEnglishRhymeSearch } from "@/hooks/useEnglishRhymeSearch";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useHistory } from "@/hooks/useHistory";
 import { useRhymeSearch } from "@/hooks/useRhymeSearch";
-import { updateIndex } from "@/lib/api";
-import type { PatternRhymeResult, Phoneme } from "@/types";
+import type { EnglishRhymeResult, PatternRhymeResult, Phoneme, SearchLanguage } from "@/types";
 
-type Dropdown = "history" | "favorites" | null;
 type RubyFormat = "katakana" | "half-katakana" | "hiragana";
+type ResultTab = "search" | "favorites";
+type Position = "prefix" | "suffix" | "contains" | "exact";
+
+const POSITIONS: { value: Position; label: string }[] = [
+  { value: "suffix", label: "末尾（脚韻）" },
+  { value: "prefix", label: "先頭（頭韻）" },
+  { value: "exact", label: "完全一致" },
+  { value: "contains", label: "含む" },
+];
 
 export default function Home() {
-  const [openDropdown, setOpenDropdown] = useState<Dropdown>(null);
   const [currentPattern, setCurrentPattern] = useState("");
   const [phonemes, setPhonemes] = useState<Phoneme[]>([]);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [rubyFormat, setRubyFormat] = useState<RubyFormat>("katakana");
   const [inputValue, setInputValue] = useState<string | undefined>(undefined);
+  const [searchLanguage, setSearchLanguage] = useState<SearchLanguage>("ja");
+  const [resultTab, setResultTab] = useState<ResultTab>("search");
+  const [position, setPosition] = useState<Position>("suffix");
 
   const {
     input,
@@ -43,8 +50,21 @@ export default function Home() {
     updateOptions,
   } = useRhymeSearch();
 
-  const { history, addToHistory, removeFromHistory, clearHistory } =
-    useHistory();
+  const {
+    input: englishInput,
+    results: englishResults,
+    total: englishTotal,
+    page: englishPage,
+    totalPages: englishTotalPages,
+    isLoading: englishIsLoading,
+    error: englishError,
+    searchOptions: englishSearchOptions,
+    search: searchEnglish,
+    goToPage: goToEnglishPage,
+    updateOptions: updateEnglishOptions,
+  } = useEnglishRhymeSearch();
+
+  const { history, addToHistory } = useHistory();
 
   const {
     favorites,
@@ -88,10 +108,14 @@ export default function Home() {
         return;
       }
       addToHistory(reading);
-      search(reading, currentPattern);
-      setOpenDropdown(null);
+      if (searchLanguage === "ja") {
+        search(reading, currentPattern);
+      } else {
+        searchEnglish(reading, currentPattern);
+      }
+      setResultTab("search");
     },
-    [addToHistory, search, currentPattern]
+    [addToHistory, search, searchEnglish, currentPattern, searchLanguage]
   );
 
   const handleHistorySelect = useCallback(
@@ -105,11 +129,16 @@ export default function Home() {
         );
         const newPattern = patternParts.join("") + "*";
         setCurrentPattern(newPattern);
-        search(word, newPattern);
-        setOpenDropdown(null);
+        addToHistory(word);
+        if (searchLanguage === "ja") {
+          search(word, newPattern);
+        } else {
+          searchEnglish(word, newPattern);
+        }
+        setResultTab("search");
       }
     },
-    [analyze, search]
+    [analyze, search, searchEnglish, searchLanguage, addToHistory]
   );
 
   const handleWordClick = useCallback(
@@ -145,48 +174,41 @@ export default function Home() {
     [addFavorite, isFavorite, removeFavorite]
   );
 
-  const handleUpdateIndex = useCallback(async () => {
-    setIsUpdating(true);
-    setUpdateMessage(null);
-    try {
-      const result = await updateIndex(false);
-      setUpdateMessage(result.message);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "更新に失敗しました";
-      setUpdateMessage(`更新に失敗: ${errorMessage}`);
-      console.error("Index update failed:", err);
-    } finally {
-      setIsUpdating(false);
-    }
-  }, []);
+  const handleEnglishWordClick = useCallback(
+    (word: string) => {
+      // 英語単語クリック時は、その単語の母音パターンで再検索
+      // TODO: 英語の発音からパターンを取得するAPI追加後に実装
+      const url = `https://www.google.com/search?q=${encodeURIComponent(word + " meaning")}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    },
+    []
+  );
 
-  const hasResults = input !== null || results.length > 0;
+  const handleEnglishToggleFavorite = useCallback(
+    (result: EnglishRhymeResult) => {
+      if (isFavorite(result.word)) {
+        removeFavorite(result.word);
+      } else {
+        addFavorite({
+          word: result.word,
+          reading: result.katakana,
+          vowels: result.vowel_pattern,
+        });
+      }
+    },
+    [addFavorite, isFavorite, removeFavorite]
+  );
+
+  const hasJapaneseResults = input !== null || results.length > 0;
+  const hasEnglishResults = englishInput !== null || englishResults.length > 0;
+  const hasResults = searchLanguage === "ja" ? hasJapaneseResults : hasEnglishResults;
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <h1 className="text-xl font-bold text-slate-800">韻スピレーション</h1>
-          <div className="flex items-center gap-2">
-            {updateMessage && (
-              <span className="text-sm text-slate-500">{updateMessage}</span>
-            )}
-            <button
-              onClick={handleUpdateIndex}
-              disabled={isUpdating}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="辞書を更新"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${isUpdating ? "animate-spin" : ""}`}
-              />
-              <span className="hidden sm:inline">
-                {isUpdating ? "更新中..." : "辞書を更新"}
-              </span>
-            </button>
-          </div>
         </div>
       </header>
 
@@ -199,83 +221,43 @@ export default function Home() {
             isLoading={isLoading}
             value={inputValue}
             onValueChange={setInputValue}
+            history={history}
+            onHistorySelect={handleHistorySelect}
           />
 
-          {/* History & Favorites Buttons */}
-          {openDropdown && (
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setOpenDropdown(null)}
-            />
+          {/* Settings Row */}
+          {phonemes.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              {/* Language Select */}
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-slate-500">言語:</label>
+                <select
+                  value={searchLanguage}
+                  onChange={(e) => setSearchLanguage(e.target.value as SearchLanguage)}
+                  className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ja">日本語</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+
+              {/* Position Select */}
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-slate-500">韻の位置:</label>
+                <select
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value as Position)}
+                  className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+                >
+                  {POSITIONS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           )}
-          <div className="flex gap-2 mt-3">
-            <div className="relative">
-              <button
-                onClick={() =>
-                  setOpenDropdown(openDropdown === "history" ? null : "history")
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  openDropdown === "history"
-                    ? "bg-slate-200 text-slate-900"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Clock className="w-4 h-4" />
-                履歴
-                {history.length > 0 && (
-                  <span className="text-xs text-slate-400">
-                    ({history.length})
-                  </span>
-                )}
-              </button>
-              {openDropdown === "history" && (
-                <div className="absolute top-full left-0 mt-1 w-80 max-h-96 overflow-auto bg-white rounded-xl shadow-lg border border-slate-200 z-20">
-                  <div className="p-4">
-                    <HistoryPanel
-                      history={history}
-                      onSelect={handleHistorySelect}
-                      onRemove={removeFromHistory}
-                      onClear={clearHistory}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <button
-                onClick={() =>
-                  setOpenDropdown(
-                    openDropdown === "favorites" ? null : "favorites"
-                  )
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  openDropdown === "favorites"
-                    ? "bg-slate-200 text-slate-900"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Heart className="w-4 h-4" />
-                お気に入り
-                {favorites.length > 0 && (
-                  <span className="text-xs text-slate-400">
-                    ({favorites.length})
-                  </span>
-                )}
-              </button>
-              {openDropdown === "favorites" && (
-                <div className="absolute top-full left-0 mt-1 w-96 max-h-96 overflow-auto bg-white rounded-xl shadow-lg border border-slate-200 z-20">
-                  <div className="p-4">
-                    <FavoritesPanel
-                      favorites={favorites}
-                      onRemove={removeFavorite}
-                      onExport={exportFavorites}
-                      onClear={clearFavorites}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Pattern Builder */}
           {phonemes.length > 0 && (
@@ -283,7 +265,10 @@ export default function Home() {
               <PatternBuilder
                 phonemes={phonemes}
                 preset="custom"
+                position={position}
                 onPatternChange={handlePatternChange}
+                onPositionChange={setPosition}
+                showPositionSelector={false}
               />
             </div>
           )}
@@ -291,32 +276,98 @@ export default function Home() {
 
         {/* Results */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[300px]">
-          {hasResults ? (
-            <ResultList
-              input={input}
-              results={results}
-              total={total}
-              page={page}
-              totalPages={totalPages}
-              isLoading={isLoading}
-              error={error}
-              rubyFormat={rubyFormat}
-              sortOrder={searchOptions.sort}
-              isFavorite={isFavorite}
-              onToggleFavorite={handleToggleFavorite}
-              onPageChange={goToPage}
-              onRubyFormatChange={setRubyFormat}
-              onSortChange={(sort) => updateOptions({ sort })}
-              onWordClick={handleWordClick}
-            />
+          {/* Tabs */}
+          <div className="flex items-center gap-1 mb-4 border-b border-slate-200">
+            <button
+              onClick={() => setResultTab("search")}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                resultTab === "search"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Search className="w-4 h-4" />
+              検索結果
+              {hasResults && (
+                <span className="text-xs text-slate-400">
+                  ({searchLanguage === "ja" ? total : englishTotal})
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setResultTab("favorites")}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                resultTab === "favorites"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              お気に入り
+              {favorites.length > 0 && (
+                <span className="text-xs text-slate-400">
+                  ({favorites.length})
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {resultTab === "search" ? (
+            hasResults ? (
+              searchLanguage === "ja" ? (
+                <ResultList
+                  language="ja"
+                  input={input}
+                  results={results}
+                  total={total}
+                  page={page}
+                  totalPages={totalPages}
+                  isLoading={isLoading}
+                  error={error}
+                  rubyFormat={rubyFormat}
+                  sortOrder={searchOptions.sort}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={handleToggleFavorite}
+                  onPageChange={goToPage}
+                  onRubyFormatChange={setRubyFormat}
+                  onSortChange={(sort) => updateOptions({ sort })}
+                  onWordClick={handleWordClick}
+                />
+              ) : (
+                <ResultList
+                  language="en"
+                  input={englishInput}
+                  results={englishResults}
+                  total={englishTotal}
+                  page={englishPage}
+                  totalPages={englishTotalPages}
+                  isLoading={englishIsLoading}
+                  error={englishError}
+                  sortOrder={englishSearchOptions.sort}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={handleEnglishToggleFavorite}
+                  onPageChange={goToEnglishPage}
+                  onSortChange={(sort) => updateEnglishOptions({ sort })}
+                  onWordClick={handleEnglishWordClick}
+                />
+              )
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                <Search className="w-12 h-12 mb-4 opacity-50" />
+                <p className="text-lg font-medium">韻を探してみよう</p>
+                <p className="text-sm mt-1">
+                  上の検索ボックスにひらがなを入力してください
+                </p>
+              </div>
+            )
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-              <Search className="w-12 h-12 mb-4 opacity-50" />
-              <p className="text-lg font-medium">韻を探してみよう</p>
-              <p className="text-sm mt-1">
-                上の検索ボックスにひらがなを入力してください
-              </p>
-            </div>
+            <FavoritesPanel
+              favorites={favorites}
+              onRemove={removeFavorite}
+              onExport={exportFavorites}
+              onClear={clearFavorites}
+            />
           )}
         </div>
       </main>

@@ -9,7 +9,11 @@ import { PhonemeDisplay } from "./PhonemeDisplay";
 interface PatternBuilderProps {
   phonemes: Phoneme[];
   preset: PresetType;
+  position?: Position;
   onPatternChange: (pattern: string) => void;
+  onPositionChange?: (position: Position) => void;
+  showPositionSelector?: boolean;
+  hidden?: boolean;
 }
 
 type Position = "prefix" | "suffix" | "contains" | "exact";
@@ -104,7 +108,11 @@ function getPresetConfig(preset: PresetType, len: number) {
 export function PatternBuilder({
   phonemes,
   preset,
+  position: externalPosition,
   onPatternChange,
+  onPositionChange,
+  showPositionSelector = true,
+  hidden = false,
 }: PatternBuilderProps) {
   const len = phonemes.length;
   const isCustom = preset === "custom";
@@ -116,7 +124,11 @@ export function PatternBuilder({
   const [customFixVowels, setCustomFixVowels] = useState<boolean[]>(
     () => Array(len).fill(true)
   );
-  const [customPosition, setCustomPosition] = useState<Position>("prefix");
+  const [internalPosition, setInternalPosition] = useState<Position>("suffix");
+
+  // Use external position if provided, otherwise use internal
+  const customPosition = externalPosition ?? internalPosition;
+  const setCustomPosition = onPositionChange ?? setInternalPosition;
 
   // Reset custom state when phonemes length changes
   useEffect(() => {
@@ -173,7 +185,33 @@ export function PatternBuilder({
     });
   }, []);
 
+  const handleSetAllConsonantsFixed = useCallback(() => {
+    setCustomFixConsonants(Array(len).fill(true));
+  }, [len]);
+
+  const handleSetAllConsonantsOptional = useCallback(() => {
+    setCustomFixConsonants(Array(len).fill(false));
+  }, [len]);
+
+  const handleSetAllVowelsFixed = useCallback(() => {
+    setCustomFixVowels(Array(len).fill(true));
+  }, [len]);
+
+  const handleSetAllVowelsOptional = useCallback(() => {
+    setCustomFixVowels(Array(len).fill(false));
+  }, [len]);
+
+  const handleResetAll = useCallback(() => {
+    setCustomFixConsonants(Array(len).fill(true));
+    setCustomFixVowels(Array(len).fill(true));
+  }, [len]);
+
   if (phonemes.length === 0) {
+    return null;
+  }
+
+  // When hidden, just run the effect for pattern generation but don't render UI
+  if (hidden) {
     return null;
   }
 
@@ -197,10 +235,52 @@ export function PatternBuilder({
           onToggleVowel={isCustom ? handleToggleVowel : undefined}
           interactive={isCustom}
         />
+
+        {/* Bulk action buttons */}
+        {isCustom && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-slate-500">子音:</span>
+              <button
+                onClick={handleSetAllConsonantsFixed}
+                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
+              >
+                固定
+              </button>
+              <button
+                onClick={handleSetAllConsonantsOptional}
+                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
+              >
+                任意
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-slate-500">母音:</span>
+              <button
+                onClick={handleSetAllVowelsFixed}
+                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
+              >
+                固定
+              </button>
+              <button
+                onClick={handleSetAllVowelsOptional}
+                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
+              >
+                任意
+              </button>
+            </div>
+            <button
+              onClick={handleResetAll}
+              className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
+            >
+              リセット
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Position Selection (only for custom) */}
-      {isCustom && (
+      {/* Position Selection (only for custom, when not externally controlled, and when showPositionSelector is true) */}
+      {isCustom && !externalPosition && showPositionSelector && (
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             位置
@@ -229,29 +309,6 @@ export function PatternBuilder({
         </div>
       )}
 
-      {/* Generated Pattern Preview */}
-      <div className="p-3 bg-slate-100 rounded-lg">
-        <span className="text-xs text-slate-500 block mb-1">
-          生成されるパターン:
-        </span>
-        <code className="text-sm font-mono text-slate-700">{currentPattern}</code>
-      </div>
-
-      {/* Legend */}
-      <div className="flex gap-4 text-xs text-slate-500">
-        <span>
-          <span className="inline-block w-3 h-3 bg-blue-500 rounded mr-1" />
-          子音固定
-        </span>
-        <span>
-          <span className="inline-block w-3 h-3 bg-green-500 rounded mr-1" />
-          母音固定
-        </span>
-        <span>
-          <span className="inline-block w-3 h-3 bg-slate-200 rounded mr-1" />
-          任意
-        </span>
-      </div>
     </div>
   );
 }

@@ -71,3 +71,48 @@ class IndexUpdateResponse(BaseModel):
     added: int = Field(description="追加された単語数")
     total: int = Field(description="インデックス内の総単語数")
     message: str = Field(description="更新結果のメッセージ")
+
+
+# ========== English Rhyme Search Schemas ==========
+
+
+class Language(str, Enum):
+    """Search language"""
+    JAPANESE = "ja"
+    ENGLISH = "en"
+
+
+class EnglishRhymeResult(BaseModel):
+    """英語韻検索の結果"""
+
+    word: str = Field(description="English word")
+    pronunciation: str = Field(description="ARPAbet pronunciation")
+    katakana: str = Field(description="Approximate katakana reading")
+    vowel_pattern: str = Field(description="Vowel pattern (Japanese-style)")
+    consonant_pattern: str = Field(description="Consonant pattern")
+    syllable_count: int = Field(description="Number of syllables")
+    score: int = Field(ge=0, le=100, description="Match score")
+
+
+class EnglishSearchRequest(BaseModel):
+    """英語韻検索リクエスト"""
+
+    reading: str = Field(..., min_length=1, description="Hiragana reading")
+    pattern: str = Field(
+        ..., min_length=1, description="Search pattern (* = any length, _ = any single phoneme)"
+    )
+    sort: SortOrder = Field(default=SortOrder.RELEVANCE, description="Sort order")
+    limit: int = Field(default=20, ge=1, le=500)
+    offset: int = Field(default=0, ge=0)
+
+
+class EnglishSearchResponse(BaseModel):
+    """英語韻検索レスポンス"""
+
+    input: PatternAnalyzeResponse = Field(description="Input analysis (Japanese)")
+    pattern: str = Field(description="Applied search pattern")
+    results: list[EnglishRhymeResult] = Field(description="English search results")
+    total: int = Field(description="Total number of matches")
+    page: int = Field(description="Current page number (1-based)")
+    per_page: int = Field(description="Results per page")
+    total_pages: int = Field(description="Total number of pages")

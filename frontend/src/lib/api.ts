@@ -1,4 +1,6 @@
 import type {
+  EnglishSearchRequest,
+  EnglishSearchResponse,
   IndexUpdateResponse,
   PatternAnalyzeResponse,
   PatternSearchRequest,
@@ -64,6 +66,15 @@ export async function updateIndex(
   }
   return fetchApi<IndexUpdateResponse>(`/rhyme/update-index?${params}`, {
     method: "POST",
+  });
+}
+
+export async function searchEnglishRhymes(
+  request: EnglishSearchRequest,
+): Promise<EnglishSearchResponse> {
+  return fetchApi<EnglishSearchResponse>("/rhyme/search/english", {
+    method: "POST",
+    body: JSON.stringify(request),
   });
 }
 

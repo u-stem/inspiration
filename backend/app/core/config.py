@@ -18,6 +18,7 @@ def _parse_cors_origins() -> list[str]:
 @dataclass(frozen=True)
 class Settings:
     index_path: str = os.getenv("INDEX_PATH", "data/rhyme_index.db")
+    english_index_path: str = os.getenv("ENGLISH_INDEX_PATH", "data/english_rhyme_index.db")
     api_prefix: str = "/api"
     cors_origins: list[str] = field(default_factory=_parse_cors_origins)
 

@@ -19,6 +19,23 @@ NEOLOGD_SEED_URL = (
     "mecab-user-dict-seed.20200910.csv.xz"
 )
 
+IPADIC_BASE_URL = "https://raw.githubusercontent.com/taku910/mecab/master/mecab-ipadic/"
+IPADIC_FILES = [
+    "Noun.csv",
+    "Noun.adjv.csv",
+    "Noun.adverbal.csv",
+    "Noun.nai.csv",
+    "Noun.name.csv",
+    "Noun.number.csv",
+    "Noun.org.csv",
+    "Noun.place.csv",
+    "Noun.proper.csv",
+    "Noun.verbal.csv",
+    "Verb.csv",
+    "Adj.csv",
+    "Adverb.csv",
+]
+
 DOWNLOAD_TIMEOUT = 60  # seconds
 MAX_ERRORS = 100
 
@@ -53,6 +70,85 @@ def is_valid_word(surface: str) -> bool:
         return False
 
     return not any(c.isdigit() or c in "０１２３４５６７８９" for c in surface)
+
+
+def download_ipadic(cache_dir: Path) -> list[Path]:
+    """Download IPADIC CSV files if not cached."""
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    downloaded = []
+
+    for filename in IPADIC_FILES:
+        csv_path = cache_dir / f"ipadic_{filename}"
+        if csv_path.exists():
+            downloaded.append(csv_path)
+            continue
+
+        url = IPADIC_BASE_URL + filename
+        print(f"Downloading: {url}")
+        original_timeout = socket.getdefaulttimeout()
+        try:
+            socket.setdefaulttimeout(DOWNLOAD_TIMEOUT)
+            urllib.request.urlretrieve(url, csv_path)
+            downloaded.append(csv_path)
+        except (URLError, TimeoutError) as e:
+            print(f"Failed to download {filename}: {e}")
+        finally:
+            socket.setdefaulttimeout(original_timeout)
+
+    return downloaded
+
+
+def parse_ipadic_csv(csv_path: Path) -> list[tuple[str, str]]:
+    """Parse IPADIC CSV and extract (surface, reading) pairs.
+
+    IPADIC CSV format (EUC-JP encoded):
+    - Column 0: Surface form (見出し)
+    - Column 11: Reading (読み) in katakana
+    """
+    words: list[tuple[str, str]] = []
+
+    try:
+        with open(csv_path, encoding="euc-jp", errors="replace") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) < 12:
+                    continue
+
+                surface = row[0]
+                reading = row[11] if row[11] != "*" else ""
+
+                if not reading:
+                    continue
+
+                if not is_valid_word(surface):
+                    continue
+
+                words.append((surface, reading))
+    except Exception as e:
+        print(f"Error parsing {csv_path}: {e}")
+
+    return words
+
+
+def get_ipadic_words(cache_dir: Path) -> list[tuple[str, str]]:
+    """Get all words from IPADIC."""
+    csv_files = download_ipadic(cache_dir)
+    all_words: list[tuple[str, str]] = []
+
+    for csv_path in csv_files:
+        words = parse_ipadic_csv(csv_path)
+        all_words.extend(words)
+        print(f"  {csv_path.name}: {len(words)} words")
+
+    seen: set[str] = set()
+    unique_words: list[tuple[str, str]] = []
+    for surface, reading in all_words:
+        if surface not in seen:
+            seen.add(surface)
+            unique_words.append((surface, reading))
+
+    print(f"Loaded {len(unique_words)} unique words from IPADIC")
+    return unique_words
 
 
 def download_neologd_seed(cache_dir: Path) -> Path:
@@ -130,12 +226,31 @@ def get_neologd_words(cache_dir: Path) -> list[tuple[str, str]]:
     return unique_words
 
 
-def build_sqlite_index(output_path: str = "data/rhyme_index.db") -> None:
-    """Build SQLite rhyme index from NEologd seed data."""
+def build_sqlite_index(
+    output_path: str = "data/rhyme_index.db",
+    include_ipadic: bool = True,
+) -> None:
+    """Build SQLite rhyme index from NEologd seed data and optionally IPADIC."""
     cache_dir = Path("/tmp/neologd_cache")
 
     print("Downloading NEologd seed data...")
     words = get_neologd_words(cache_dir)
+    print(f"NEologd unique words: {len(words)}")
+
+    if include_ipadic:
+        print("\nDownloading IPADIC data...")
+        ipadic_words = get_ipadic_words(cache_dir)
+
+        # Merge: NEologd takes priority, add IPADIC words not in NEologd
+        existing_surfaces = {w[0] for w in words}
+        added_from_ipadic = 0
+        for surface, reading in ipadic_words:
+            if surface not in existing_surfaces:
+                words.append((surface, reading))
+                existing_surfaces.add(surface)
+                added_from_ipadic += 1
+        print(f"Added {added_from_ipadic} words from IPADIC")
+
     print(f"Total unique words: {len(words)}")
 
     output = Path(output_path)
@@ -284,9 +399,14 @@ if __name__ == "__main__":
         action="store_true",
         help="Build a small sample index for testing",
     )
+    parser.add_argument(
+        "--no-ipadic",
+        action="store_true",
+        help="Skip IPADIC dictionary (use NEologd only)",
+    )
     args = parser.parse_args()
 
     if args.sample:
         build_sample_index(args.output)
     else:
-        build_sqlite_index(args.output)
+        build_sqlite_index(args.output, include_ipadic=not args.no_ipadic)

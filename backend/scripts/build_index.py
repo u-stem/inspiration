@@ -36,6 +36,12 @@ IPADIC_FILES = [
     "Adverb.csv",
 ]
 
+WIKIPEDIA_TITLES_URL = (
+    "https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-all-titles-in-ns0.gz"
+)
+
+JMDICT_URL = "http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz"
+
 DOWNLOAD_TIMEOUT = 60  # seconds
 MAX_ERRORS = 100
 
@@ -70,6 +76,177 @@ def is_valid_word(surface: str) -> bool:
         return False
 
     return not any(c.isdigit() or c in "０１２３４５６７８９" for c in surface)
+
+
+def download_jmdict(cache_dir: Path) -> Path:
+    """Download JMdict dictionary file."""
+    import gzip
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    gz_path = cache_dir / "JMdict_e.gz"
+    xml_path = cache_dir / "JMdict_e.xml"
+
+    if xml_path.exists():
+        print(f"Using cached: {xml_path}")
+        return xml_path
+
+    if not gz_path.exists():
+        print(f"Downloading: {JMDICT_URL}")
+        original_timeout = socket.getdefaulttimeout()
+        try:
+            socket.setdefaulttimeout(120)
+            urllib.request.urlretrieve(JMDICT_URL, gz_path)
+        except (URLError, TimeoutError) as e:
+            raise RuntimeError(f"Download failed: {e}") from e
+        finally:
+            socket.setdefaulttimeout(original_timeout)
+
+    print(f"Extracting: {gz_path}")
+    with gzip.open(gz_path, "rt", encoding="utf-8") as f_in, open(
+        xml_path, "w", encoding="utf-8"
+    ) as f_out:
+        f_out.write(f_in.read())
+
+    return xml_path
+
+
+def get_jmdict_words(cache_dir: Path) -> list[tuple[str, str]]:
+    """Get words from JMdict using streaming XML parser."""
+    import xml.etree.ElementTree as ET
+
+    xml_path = download_jmdict(cache_dir)
+    words: list[tuple[str, str]] = []
+
+    print("Parsing JMdict (streaming)...")
+
+    # Use iterparse for memory efficiency
+    context = ET.iterparse(xml_path, events=("end",))
+    count = 0
+
+    for event, elem in context:
+        if elem.tag == "entry":
+            # Extract kanji (keb) and reading (reb)
+            keb_elem = elem.find(".//keb")
+            reb_elem = elem.find(".//reb")
+
+            if keb_elem is not None and reb_elem is not None:
+                surface = keb_elem.text
+                reading = reb_elem.text
+
+                if surface and reading and is_valid_word(surface):
+                    # Convert hiragana reading to katakana
+                    katakana_reading = "".join(
+                        chr(ord(c) + 96) if "ぁ" <= c <= "ん" else c for c in reading
+                    )
+                    words.append((surface, katakana_reading))
+
+            # Clear element to save memory
+            elem.clear()
+            count += 1
+
+            if count % 50000 == 0:
+                print(f"  Processed {count} entries...")
+
+    print(f"Loaded {len(words)} words from JMdict")
+    return words
+
+
+def download_wikipedia_titles(cache_dir: Path) -> Path:
+    """Download Wikipedia Japanese article titles."""
+    import gzip
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    gz_path = cache_dir / "jawiki-titles.gz"
+    txt_path = cache_dir / "jawiki-titles.txt"
+
+    if txt_path.exists():
+        print(f"Using cached: {txt_path}")
+        return txt_path
+
+    print(f"Downloading: {WIKIPEDIA_TITLES_URL}")
+    original_timeout = socket.getdefaulttimeout()
+    try:
+        socket.setdefaulttimeout(120)  # Larger file, longer timeout
+        urllib.request.urlretrieve(WIKIPEDIA_TITLES_URL, gz_path)
+    except (URLError, TimeoutError) as e:
+        raise RuntimeError(f"Download failed: {e}") from e
+    finally:
+        socket.setdefaulttimeout(original_timeout)
+
+    print(f"Extracting: {gz_path}")
+    with gzip.open(gz_path, "rt", encoding="utf-8") as f_in, open(
+        txt_path, "w", encoding="utf-8"
+    ) as f_out:
+        f_out.write(f_in.read())
+
+    gz_path.unlink()
+    return txt_path
+
+
+def get_reading_from_sudachi(surface: str) -> str | None:
+    """Get reading for a word using SudachiPy."""
+    from sudachipy import Dictionary
+
+    try:
+        dict_obj = Dictionary(dict="full")
+        tokenizer = dict_obj.create()
+        tokens = tokenizer.tokenize(surface)
+
+        # Concatenate readings of all tokens
+        readings = []
+        for token in tokens:
+            reading = token.reading_form()
+            if reading:
+                readings.append(reading)
+
+        if readings:
+            return "".join(readings)
+    except Exception:
+        pass
+    return None
+
+
+def get_wikipedia_words(cache_dir: Path, max_words: int = 500000) -> list[tuple[str, str]]:
+    """Get words from Wikipedia Japanese article titles.
+
+    Args:
+        cache_dir: Cache directory
+        max_words: Maximum number of words to process (Wikipedia has millions)
+    """
+    txt_path = download_wikipedia_titles(cache_dir)
+    words: list[tuple[str, str]] = []
+
+    print(f"Processing Wikipedia titles (max {max_words})...")
+    with open(txt_path, encoding="utf-8") as f:
+        # Skip header line
+        next(f, None)
+
+        processed = 0
+        for line in f:
+            if processed >= max_words:
+                break
+
+            title = line.strip()
+
+            # Skip invalid titles
+            if not title or not is_valid_word(title):
+                continue
+
+            # Skip titles that are too long
+            if len(title) > 15:
+                continue
+
+            # Get reading using SudachiPy
+            reading = get_reading_from_sudachi(title)
+            if reading and len(reading) <= 20:
+                words.append((title, reading))
+                processed += 1
+
+                if processed % 10000 == 0:
+                    print(f"  Processed {processed} titles...")
+
+    print(f"Loaded {len(words)} words from Wikipedia titles")
+    return words
 
 
 def download_ipadic(cache_dir: Path) -> list[Path]:
@@ -229,20 +406,24 @@ def get_neologd_words(cache_dir: Path) -> list[tuple[str, str]]:
 def build_sqlite_index(
     output_path: str = "data/rhyme_index.db",
     include_ipadic: bool = True,
+    include_jmdict: bool = False,
+    include_wikipedia: bool = False,
+    wikipedia_max: int = 500000,
 ) -> None:
-    """Build SQLite rhyme index from NEologd seed data and optionally IPADIC."""
+    """Build SQLite rhyme index from NEologd seed data and optionally IPADIC/JMdict/Wikipedia."""
     cache_dir = Path("/tmp/neologd_cache")
 
     print("Downloading NEologd seed data...")
     words = get_neologd_words(cache_dir)
     print(f"NEologd unique words: {len(words)}")
 
+    existing_surfaces = {w[0] for w in words}
+
     if include_ipadic:
         print("\nDownloading IPADIC data...")
         ipadic_words = get_ipadic_words(cache_dir)
 
         # Merge: NEologd takes priority, add IPADIC words not in NEologd
-        existing_surfaces = {w[0] for w in words}
         added_from_ipadic = 0
         for surface, reading in ipadic_words:
             if surface not in existing_surfaces:
@@ -250,6 +431,32 @@ def build_sqlite_index(
                 existing_surfaces.add(surface)
                 added_from_ipadic += 1
         print(f"Added {added_from_ipadic} words from IPADIC")
+
+    if include_jmdict:
+        print("\nDownloading JMdict data...")
+        jmdict_words = get_jmdict_words(cache_dir)
+
+        # Merge: add JMdict words not already in dictionary
+        added_from_jmdict = 0
+        for surface, reading in jmdict_words:
+            if surface not in existing_surfaces:
+                words.append((surface, reading))
+                existing_surfaces.add(surface)
+                added_from_jmdict += 1
+        print(f"Added {added_from_jmdict} words from JMdict")
+
+    if include_wikipedia:
+        print("\nDownloading Wikipedia titles...")
+        wiki_words = get_wikipedia_words(cache_dir, max_words=wikipedia_max)
+
+        # Merge: add Wikipedia words not already in dictionary
+        added_from_wiki = 0
+        for surface, reading in wiki_words:
+            if surface not in existing_surfaces:
+                words.append((surface, reading))
+                existing_surfaces.add(surface)
+                added_from_wiki += 1
+        print(f"Added {added_from_wiki} words from Wikipedia")
 
     print(f"Total unique words: {len(words)}")
 
@@ -384,6 +591,93 @@ def build_sample_index(output_path: str = "data/rhyme_index.db") -> None:
     print(f"Done! Indexed {len(words)} sample words")
 
 
+def add_words_to_index(
+    db_path: str,
+    words: list[tuple[str, str]],
+) -> int:
+    """Add words to existing index.
+
+    Args:
+        db_path: Path to SQLite database
+        words: List of (surface, reading) tuples
+
+    Returns:
+        Number of words added
+    """
+    index = RhymeIndex(db_path=db_path)
+
+    # Get existing words
+    conn = index._get_conn()
+    cursor = conn.execute("SELECT word FROM words")
+    existing = {row[0] for row in cursor.fetchall()}
+
+    added = 0
+    for word, reading in words:
+        if word in existing:
+            continue
+
+        try:
+            phoneme_analysis = analyze(reading)
+            if phoneme_analysis.vowels:
+                entry = IndexEntry(
+                    word=word,
+                    reading=reading,
+                    vowels=phoneme_analysis.vowels,
+                    consonants=phoneme_analysis.consonants,
+                    mora_count=phoneme_analysis.mora_count,
+                    initial_consonant=phoneme_analysis.initial_consonant,
+                )
+                index.add_entry_to_db(entry)
+                added += 1
+                print(f"  Added: {word} ({reading})")
+        except Exception as e:
+            print(f"  Error: {word} - {e}")
+
+    index.commit()
+    index.close()
+    return added
+
+
+def add_word_interactive(db_path: str) -> None:
+    """Interactive mode to add words."""
+    from sudachipy import Dictionary
+
+    dict_obj = Dictionary(dict="full")
+    tokenizer = dict_obj.create()
+
+    print("Enter words to add (empty line to quit):")
+    print("Format: word or word,reading")
+
+    words_to_add = []
+    while True:
+        line = input("> ").strip()
+        if not line:
+            break
+
+        if "," in line:
+            word, reading = line.split(",", 1)
+            word = word.strip()
+            reading = reading.strip()
+        else:
+            word = line
+            # Get reading from SudachiPy
+            tokens = tokenizer.tokenize(word)
+            reading = "".join(t.reading_form() for t in tokens)
+
+        if reading:
+            words_to_add.append((word, reading))
+            print(f"  Queued: {word} ({reading})")
+        else:
+            print(f"  Could not get reading for: {word}")
+
+    if words_to_add:
+        print(f"\nAdding {len(words_to_add)} words...")
+        added = add_words_to_index(db_path, words_to_add)
+        print(f"Added {added} new words")
+    else:
+        print("No words to add")
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -404,9 +698,63 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip IPADIC dictionary (use NEologd only)",
     )
+    parser.add_argument(
+        "--jmdict",
+        action="store_true",
+        help="Include JMdict (Japanese-English dictionary)",
+    )
+    parser.add_argument(
+        "--wikipedia",
+        action="store_true",
+        help="Include Wikipedia Japanese article titles",
+    )
+    parser.add_argument(
+        "--wikipedia-max",
+        type=int,
+        default=500000,
+        help="Maximum Wikipedia titles to process (default: 500000)",
+    )
+    parser.add_argument(
+        "--add",
+        action="store_true",
+        help="Interactive mode to add words to existing index",
+    )
+    parser.add_argument(
+        "--add-words",
+        nargs="+",
+        help="Add specific words (format: word or word,reading)",
+    )
     args = parser.parse_args()
 
-    if args.sample:
+    if args.add:
+        add_word_interactive(args.output)
+    elif args.add_words:
+        from sudachipy import Dictionary
+
+        dict_obj = Dictionary(dict="full")
+        tokenizer = dict_obj.create()
+
+        words_to_add = []
+        for item in args.add_words:
+            if "," in item:
+                word, reading = item.split(",", 1)
+            else:
+                word = item
+                tokens = tokenizer.tokenize(word)
+                reading = "".join(t.reading_form() for t in tokens)
+            if reading:
+                words_to_add.append((word, reading))
+
+        if words_to_add:
+            added = add_words_to_index(args.output, words_to_add)
+            print(f"Added {added} new words")
+    elif args.sample:
         build_sample_index(args.output)
     else:
-        build_sqlite_index(args.output, include_ipadic=not args.no_ipadic)
+        build_sqlite_index(
+            args.output,
+            include_ipadic=not args.no_ipadic,
+            include_jmdict=args.jmdict,
+            include_wikipedia=args.wikipedia,
+            wikipedia_max=args.wikipedia_max,
+        )

@@ -168,7 +168,10 @@ export function ResultList({
       {totalPages > 1 && !isLoading && (
         <div className="flex justify-center items-center gap-1 pt-4">
           <button
-            onClick={() => onPageChange(page - 1)}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onPageChange(page - 1);
+            }}
             disabled={page === 1}
             className="p-2 rounded-md text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             aria-label="前のページ"
@@ -187,7 +190,10 @@ export function ResultList({
             ) : (
               <button
                 key={pageNum}
-                onClick={() => onPageChange(pageNum)}
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  onPageChange(pageNum);
+                }}
                 className={`min-w-[36px] h-9 px-3 rounded-md text-sm font-medium transition-colors ${
                   page === pageNum
                     ? "bg-blue-500 text-white"
@@ -202,7 +208,10 @@ export function ResultList({
           )}
 
           <button
-            onClick={() => onPageChange(page + 1)}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              onPageChange(page + 1);
+            }}
             disabled={page === totalPages}
             className="p-2 rounded-md text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             aria-label="次のページ"

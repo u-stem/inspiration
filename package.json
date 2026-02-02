@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "docker compose up",
+    "dev:detached": "docker compose up -d",
     "dev:frontend": "bun run --cwd frontend dev",
     "dev:backend": "cd backend && uv run uvicorn app.main:app --reload",
     "build:frontend": "bun run --cwd frontend build",
@@ -15,20 +16,16 @@
     "lint:frontend:fix": "bun run --cwd frontend lint:fix",
     "lint:backend": "cd backend && uv run ruff check .",
     "lint:backend:fix": "cd backend && uv run ruff check --fix .",
-    "fmt": "bun run fmt:backend",
-    "fmt:backend": "cd backend && uv run ruff format .",
-    "fmt:check": "bun run fmt:check:backend",
-    "fmt:check:backend": "cd backend && uv run ruff format --check .",
-    "typecheck": "bun run typecheck:frontend",
-    "typecheck:frontend": "bun run --cwd frontend typecheck",
-    "test": "bun run test:backend",
-    "test:backend": "cd backend && uv run pytest",
-    "test:backend:v": "cd backend && uv run pytest -v",
+    "fmt": "cd backend && uv run ruff format .",
+    "fmt:check": "cd backend && uv run ruff format --check .",
+    "typecheck": "bun run --cwd frontend typecheck",
+    "test": "cd backend && uv run pytest",
+    "test:v": "cd backend && uv run pytest -v",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:build": "docker compose build",
     "index:build": "cd backend && uv run python scripts/build_index.py",
-    "check": "bun run typecheck && bun run lint && bun run test:backend"
+    "check": "bun run typecheck && bun run lint && bun run test"
   }
 }

@@ -8,7 +8,7 @@
 
 | 領域 | 技術 |
 |------|------|
-| フロントエンド | Next.js 15 (App Router), TypeScript, Tailwind CSS |
+| フロントエンド | Next.js 16 (App Router), TypeScript, Tailwind CSS |
 | バックエンド | FastAPI (Python 3.12) |
 | 形態素解析 | SudachiPy + SudachiDict-full |
 | 辞書データ | NEologd seed (218万語) |
@@ -20,11 +20,25 @@
 
 ```
 inspiration/
-├── frontend/           # Next.js フロントエンド
+├── frontend/                    # Next.js フロントエンド
+│   ├── src/
+│   │   ├── app/                 # App Router ページ
+│   │   ├── components/          # React コンポーネント
+│   │   ├── hooks/               # カスタムフック
+│   │   ├── lib/                 # ユーティリティ
+│   │   └── types/               # 型定義
 │   └── Dockerfile
-├── backend/            # FastAPI バックエンド
+├── backend/                     # FastAPI バックエンド
+│   ├── app/
+│   │   ├── core/                # 設定
+│   │   ├── models/              # Pydantic スキーマ
+│   │   ├── routers/             # API エンドポイント
+│   │   └── services/            # ビジネスロジック
+│   ├── scripts/                 # インデックス構築スクリプト
+│   ├── tests/                   # テスト
 │   └── Dockerfile
 ├── docker-compose.yml
+├── package.json                 # ルートスクリプト
 ├── CLAUDE.md
 └── README.md
 ```
@@ -35,8 +49,8 @@ inspiration/
 
 ```bash
 # 正しい
-bun run test:backend
-bun run lint:backend
+bun run test
+bun run lint
 
 # 間違い（直接cdして実行しない）
 cd backend && uv run pytest
@@ -48,9 +62,10 @@ cd backend && uv run pytest
 
 ```bash
 # Docker
-bun run docker:up       # 全サービス起動
+bun run docker:up       # 全サービス起動（バックグラウンド）
 bun run docker:down     # 停止
 bun run docker:logs     # ログ確認
+bun run dev             # 全サービス起動（フォアグラウンド）
 
 # ローカル開発
 bun run dev:frontend    # フロントエンド開発サーバー
@@ -58,7 +73,8 @@ bun run dev:backend     # バックエンド開発サーバー
 bun run build:frontend  # フロントエンドビルド
 
 # テスト・検証
-bun run test:backend    # バックエンドテスト
+bun run test            # テスト実行
+bun run test:v          # テスト実行（詳細）
 bun run check           # typecheck + lint + test（CI用）
 bun run lint            # 全体lint
 bun run fmt             # フォーマット

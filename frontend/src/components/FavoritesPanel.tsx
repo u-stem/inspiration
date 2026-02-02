@@ -40,14 +40,14 @@ export function FavoritesPanel({
           <button
             onClick={onExport}
             className="p-2 text-slate-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-            title="エクスポート"
+            aria-label="お気に入りをエクスポート"
           >
             <Download className="w-4 h-4" />
           </button>
           <button
             onClick={onClear}
             className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="すべて削除"
+            aria-label="お気に入りをすべて削除"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -72,6 +72,7 @@ export function FavoritesPanel({
             <button
               onClick={() => onRemove(item.word)}
               className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+              aria-label={`${item.word}をお気に入りから削除`}
             >
               <X className="w-4 h-4" />
             </button>

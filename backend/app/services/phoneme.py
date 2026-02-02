@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 
+# 小書き仮名（拗音用、モーラカウント時にスキップ）
+SMALL_KANA = frozenset("ャュョァィゥェォ")
+
 # カタカナから母音へのマッピング
 VOWEL_MAP: dict[str, str | None] = {
     # 母音
@@ -250,10 +253,9 @@ def count_morae(katakana: str) -> int:
     - ー（長音）= 1モーラ
     """
     mora = 0
-    small_kana = set("ャュョァィゥェォ")
 
     for char in katakana:
-        if char in small_kana:
+        if char in SMALL_KANA:
             continue
         if char in VOWEL_MAP or char in CONSONANT_MAP:
             mora += 1
@@ -339,31 +341,6 @@ def analyze_hiragana(reading: str) -> PhonemeAnalysis:
     return analyze(katakana)
 
 
-def extract_phonemes_detailed(katakana: str) -> list[Phoneme]:
-    """カタカナ文字列から詳細な音素リストを抽出する
-
-    子音と母音のペアを明示的に返す。
-    """
-    phonemes: list[Phoneme] = []
-    prev_vowel: str | None = None
-
-    for char in katakana:
-        if char == "ー" and prev_vowel:
-            phonemes.append(Phoneme(vowel=prev_vowel, consonant=""))
-            continue
-
-        vowel = VOWEL_MAP.get(char)
-        consonant = CONSONANT_MAP.get(char, "")
-
-        # 小書き仮名の処理
-        if char in ("ャ", "ュ", "ョ", "ァ", "ィ", "ゥ", "ェ", "ォ") and phonemes:
-            prev = phonemes[-1]
-            phonemes[-1] = Phoneme(vowel=vowel, consonant=prev.consonant)
-            prev_vowel = vowel
-            continue
-
-        if vowel is not None or consonant:
-            phonemes.append(Phoneme(vowel=vowel, consonant=consonant))
-            prev_vowel = vowel
-
-    return phonemes
+# extract_phonemes_detailed は extract_phonemes と同一のため削除
+# 後方互換性のためエイリアスを提供
+extract_phonemes_detailed = extract_phonemes

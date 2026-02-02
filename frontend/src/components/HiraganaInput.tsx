@@ -36,7 +36,6 @@ export function HiraganaInput({
       const converted = katakanaToHiragana(raw);
       setValue(converted);
 
-      // IME入力中はバリデーションをスキップ
       if (isComposingRef.current) {
         return;
       }

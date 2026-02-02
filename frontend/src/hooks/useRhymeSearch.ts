@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-import { analyzeReading, searchRhymes } from "@/lib/api";
+import { analyzeReading, ApiError, searchRhymes } from "@/lib/api";
 import type {
   PatternAnalyzeResponse,
   PatternRhymeResult,
@@ -126,8 +126,14 @@ export function useRhymeSearch(initialOptions: Partial<SearchOptions> = {}) {
           error: null,
         });
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "検索に失敗しました";
+        let message: string;
+        if (err instanceof ApiError) {
+          message = `検索に失敗しました (${err.status}): ${err.message}`;
+        } else if (err instanceof Error) {
+          message = err.message;
+        } else {
+          message = "検索に失敗しました";
+        }
         setState((prev) => ({
           ...prev,
           isLoading: false,

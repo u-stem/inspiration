@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
 
 import type { HistoryItem } from "@/types";
+
+import { createLocalStorageStore, useLocalStorageStore } from "./useLocalStorage";
 
 const STORAGE_KEY = "rhyme-history";
 const MAX_HISTORY = 50;
 const EMPTY_HISTORY: HistoryItem[] = [];
-
-let cachedHistory: HistoryItem[] = EMPTY_HISTORY;
-let cachedStorageValue: string | null = null;
 
 function isValidHistoryItem(item: unknown): item is HistoryItem {
   if (typeof item !== "object" || item === null) return false;
@@ -17,64 +16,30 @@ function isValidHistoryItem(item: unknown): item is HistoryItem {
   return typeof obj.word === "string" && typeof obj.timestamp === "number";
 }
 
-function getSnapshot(): HistoryItem[] {
-  if (typeof window === "undefined") return EMPTY_HISTORY;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === cachedStorageValue) {
-    return cachedHistory;
-  }
-  cachedStorageValue = stored;
-  if (!stored) {
-    cachedHistory = EMPTY_HISTORY;
-    return cachedHistory;
-  }
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    if (!Array.isArray(parsed)) {
-      cachedHistory = EMPTY_HISTORY;
-      return cachedHistory;
-    }
-    cachedHistory = parsed.filter(isValidHistoryItem);
-  } catch {
-    cachedHistory = EMPTY_HISTORY;
-  }
-  return cachedHistory;
-}
-
-function getServerSnapshot(): HistoryItem[] {
-  return EMPTY_HISTORY;
-}
-
-function subscribe(callback: () => void): () => void {
-  window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
-}
+const historyStore = createLocalStorageStore<HistoryItem[]>(
+  STORAGE_KEY,
+  EMPTY_HISTORY,
+  isValidHistoryItem,
+);
 
 export function useHistory() {
-  const history = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const history = useLocalStorageStore(historyStore);
 
   const addToHistory = useCallback((word: string) => {
-    const current = getSnapshot();
+    const current = historyStore.getSnapshot();
     const filtered = current.filter((item) => item.word !== word);
-    const newHistory = [
-      { word, timestamp: Date.now() },
-      ...filtered,
-    ].slice(0, MAX_HISTORY);
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
-    window.dispatchEvent(new Event("storage"));
+    const newHistory = [{ word, timestamp: Date.now() }, ...filtered].slice(0, MAX_HISTORY);
+    historyStore.setData(newHistory);
   }, []);
 
   const removeFromHistory = useCallback((word: string) => {
-    const current = getSnapshot();
+    const current = historyStore.getSnapshot();
     const newHistory = current.filter((item) => item.word !== word);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
-    window.dispatchEvent(new Event("storage"));
+    historyStore.setData(newHistory);
   }, []);
 
   const clearHistory = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    window.dispatchEvent(new Event("storage"));
+    historyStore.clear();
   }, []);
 
   return {

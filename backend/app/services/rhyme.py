@@ -115,7 +115,10 @@ class RhymeIndex:
         consonants_rev = self._reverse_pattern(entry.consonants)
         conn.execute(
             """
-            INSERT INTO words (word, reading, vowels, consonants, mora_count, initial_consonant, vowels_rev, consonants_rev)
+            INSERT INTO words (
+                word, reading, vowels, consonants,
+                mora_count, initial_consonant, vowels_rev, consonants_rev
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -302,7 +305,10 @@ class RhymeIndex:
         if not conditions:
             # No pattern specified, return limited results
             cursor = conn.execute(
-                "SELECT word, reading, vowels, consonants, mora_count, initial_consonant FROM words LIMIT ?",
+                """
+                SELECT word, reading, vowels, consonants, mora_count, initial_consonant
+                FROM words LIMIT ?
+                """,
                 (limit,),
             )
         else:

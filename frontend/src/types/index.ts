@@ -64,10 +64,3 @@ export interface IndexUpdateResponse {
 }
 
 export type PresetType = "suffix" | "prefix" | "vowel" | "contains" | "exact" | "custom";
-
-export interface PatternBuilderState {
-  phonemes: Phoneme[];
-  fixConsonants: boolean[];
-  fixVowels: boolean[];
-  position: "prefix" | "suffix" | "contains";
-}

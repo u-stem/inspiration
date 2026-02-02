@@ -69,7 +69,10 @@ export async function updateIndex(
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = await response.json().catch((e) => {
+      console.error("Failed to parse error response:", e);
+      return {};
+    });
     throw new ApiError(response.status, errorData.error || "Update failed");
   }
 

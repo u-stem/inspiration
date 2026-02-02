@@ -8,7 +8,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   FavoritesPanel,
@@ -69,16 +69,25 @@ export default function Home() {
     clearFavorites,
   } = useFavorites();
 
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleReadingChange = useCallback(
-    async (reading: string) => {
-      if (reading.length > 0) {
+    (reading: string) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      if (reading.length === 0) {
+        setPhonemes([]);
+        return;
+      }
+
+      debounceTimerRef.current = setTimeout(async () => {
         const result = await analyze(reading);
         if (result) {
           setPhonemes(result);
         }
-      } else {
-        setPhonemes([]);
-      }
+      }, 300);
     },
     [analyze]
   );
@@ -159,7 +168,8 @@ export default function Home() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-            title="設定"
+            aria-expanded={showSettings}
+            aria-label="設定を開く"
           >
             <Settings className="w-5 h-5" />
           </button>
@@ -173,6 +183,7 @@ export default function Home() {
                 <button
                   onClick={() => setShowSettings(false)}
                   className="p-1 text-slate-400 hover:text-slate-600"
+                  aria-label="設定を閉じる"
                 >
                   <X className="w-4 h-4" />
                 </button>

@@ -123,7 +123,7 @@ def get_jmdict_words(cache_dir: Path) -> list[tuple[str, str]]:
     context = ET.iterparse(xml_path, events=("end",))
     count = 0
 
-    for event, elem in context:
+    for _event, elem in context:
         if elem.tag == "entry":
             # Extract kanji (keb) and reading (reb)
             keb_elem = elem.find(".//keb")
@@ -183,13 +183,25 @@ def download_wikipedia_titles(cache_dir: Path) -> Path:
     return txt_path
 
 
+# Cached Sudachi tokenizer for efficiency
+_sudachi_tokenizer = None
+
+
+def _get_sudachi_tokenizer():
+    """Get cached Sudachi tokenizer."""
+    global _sudachi_tokenizer
+    if _sudachi_tokenizer is None:
+        from sudachipy import Dictionary
+
+        dict_obj = Dictionary(dict="full")
+        _sudachi_tokenizer = dict_obj.create()
+    return _sudachi_tokenizer
+
+
 def get_reading_from_sudachi(surface: str) -> str | None:
     """Get reading for a word using SudachiPy."""
-    from sudachipy import Dictionary
-
     try:
-        dict_obj = Dictionary(dict="full")
-        tokenizer = dict_obj.create()
+        tokenizer = _get_sudachi_tokenizer()
         tokens = tokenizer.tokenize(surface)
 
         # Concatenate readings of all tokens
@@ -201,8 +213,8 @@ def get_reading_from_sudachi(surface: str) -> str | None:
 
         if readings:
             return "".join(readings)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Warning: Failed to get reading for text: {e}")
     return None
 
 

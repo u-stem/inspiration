@@ -19,8 +19,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Copy project files
 COPY pyproject.toml uv.lock* ./
 
-# Install Python dependencies
-RUN uv sync --frozen --no-cache || uv sync --no-cache
+# Install Python dependencies (lockfile required)
+RUN uv sync --frozen --no-cache
 
 # Runtime stage: 軽量イメージ
 FROM python:3.12-slim

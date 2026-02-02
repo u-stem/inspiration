@@ -193,6 +193,8 @@ export function ResultList({
                     ? "bg-blue-500 text-white"
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
+                aria-label={`${pageNum}ページ目`}
+                aria-current={page === pageNum ? "page" : undefined}
               >
                 {pageNum}
               </button>

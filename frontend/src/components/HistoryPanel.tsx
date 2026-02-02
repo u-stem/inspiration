@@ -60,6 +60,7 @@ export function HistoryPanel({
             <button
               onClick={() => onRemove(item.word)}
               className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+              aria-label={`${item.word}を履歴から削除`}
             >
               <X className="w-4 h-4" />
             </button>

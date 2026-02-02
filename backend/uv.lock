@@ -286,7 +286,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "sudachidict-full", specifier = ">=20241021" },
-    { name = "sudachipy", specifier = ">=0.6.8" },
+    { name = "sudachipy", specifier = "~=0.6.8" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
 

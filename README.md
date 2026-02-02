@@ -11,7 +11,7 @@
 
 ## 技術スタック
 
-- **フロントエンド**: Next.js 15, TypeScript, Tailwind CSS
+- **フロントエンド**: Next.js 16, TypeScript, Tailwind CSS
 - **バックエンド**: FastAPI (Python 3.12)
 - **形態素解析**: SudachiPy + SudachiDict-full
 - **辞書データ**: NEologd seed (218万語)
@@ -28,13 +28,23 @@
 
 ```bash
 # バックエンド
-cp backend/.env.sample backend/.env
-# ADMIN_API_KEY に任意の文字列を設定
+cat > backend/.env << 'EOF'
+ADMIN_API_KEY=your-secret-api-key-here
+EOF
 
 # フロントエンド
-cp frontend/.env.local.sample frontend/.env.local
-# ADMIN_API_KEY にバックエンドと同じ値を設定
+cat > frontend/.env.local << 'EOF'
+ADMIN_API_KEY=your-secret-api-key-here
+EOF
 ```
+
+**環境変数の説明:**
+
+| 変数 | 必須 | 説明 |
+|------|------|------|
+| `ADMIN_API_KEY` | Yes | インデックス更新用のAPIキー（両方で同じ値を設定） |
+| `CORS_ORIGINS` | No | 許可するオリジン（デフォルト: `http://localhost:3000`） |
+| `INDEX_PATH` | No | インデックスDBのパス（デフォルト: `data/rhyme_index.db`） |
 
 ### 2. 起動
 
@@ -60,9 +70,7 @@ bun run docker:down  # 停止
 
 **1. 環境変数の設定:**
 ```bash
-cp backend/.env.sample backend/.env
-cp frontend/.env.local.sample frontend/.env.local
-# 両方の ADMIN_API_KEY に同じ値を設定
+# 上記「環境変数の設定」を参照
 ```
 
 **2. 依存関係のインストール:**

@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback } from "react";
 
 import type { FavoriteItem } from "@/types";
+
+import { createLocalStorageStore, useLocalStorageStore } from "./useLocalStorage";
 
 const STORAGE_KEY = "rhyme-favorites";
 const MAX_FAVORITES = 500;
 const EMPTY_FAVORITES: FavoriteItem[] = [];
-
-let cachedFavorites: FavoriteItem[] = EMPTY_FAVORITES;
-let cachedStorageValue: string | null = null;
 
 interface AddFavoriteInput {
   word: string;
@@ -28,44 +27,17 @@ function isValidFavoriteItem(item: unknown): item is FavoriteItem {
   );
 }
 
-function getSnapshot(): FavoriteItem[] {
-  if (typeof window === "undefined") return EMPTY_FAVORITES;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === cachedStorageValue) {
-    return cachedFavorites;
-  }
-  cachedStorageValue = stored;
-  if (!stored) {
-    cachedFavorites = EMPTY_FAVORITES;
-    return cachedFavorites;
-  }
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    if (!Array.isArray(parsed)) {
-      cachedFavorites = EMPTY_FAVORITES;
-      return cachedFavorites;
-    }
-    cachedFavorites = parsed.filter(isValidFavoriteItem);
-  } catch {
-    cachedFavorites = EMPTY_FAVORITES;
-  }
-  return cachedFavorites;
-}
-
-function getServerSnapshot(): FavoriteItem[] {
-  return EMPTY_FAVORITES;
-}
-
-function subscribe(callback: () => void): () => void {
-  window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
-}
+const favoritesStore = createLocalStorageStore<FavoriteItem[]>(
+  STORAGE_KEY,
+  EMPTY_FAVORITES,
+  isValidFavoriteItem,
+);
 
 export function useFavorites() {
-  const favorites = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const favorites = useLocalStorageStore(favoritesStore);
 
   const addFavorite = useCallback((item: AddFavoriteInput) => {
-    const current = getSnapshot();
+    const current = favoritesStore.getSnapshot();
     const exists = current.some((f) => f.word === item.word);
     if (exists) return;
 
@@ -84,15 +56,13 @@ export function useFavorites() {
       },
     ];
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newFavorites));
-    window.dispatchEvent(new Event("storage"));
+    favoritesStore.setData(newFavorites);
   }, []);
 
   const removeFavorite = useCallback((word: string) => {
-    const current = getSnapshot();
+    const current = favoritesStore.getSnapshot();
     const newFavorites = current.filter((item) => item.word !== word);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newFavorites));
-    window.dispatchEvent(new Event("storage"));
+    favoritesStore.setData(newFavorites);
   }, []);
 
   const isFavorite = useCallback(
@@ -103,23 +73,20 @@ export function useFavorites() {
   );
 
   const exportFavorites = useCallback(() => {
-    const current = getSnapshot();
-    const text = current
-      .map((item) => `${item.word}\t${item.reading}\t${item.vowels}`)
-      .join("\n");
+    const current = favoritesStore.getSnapshot();
+    const text = current.map((item) => `${item.word}\t${item.reading}\t${item.vowels}`).join("\n");
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "rhyme-favorites.txt";
     a.click();
-    // ダウンロード完了を待ってからURLを解放
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    // Wait for download to complete before revoking URL
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, []);
 
   const clearFavorites = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    window.dispatchEvent(new Event("storage"));
+    favoritesStore.clear();
   }, []);
 
   return {

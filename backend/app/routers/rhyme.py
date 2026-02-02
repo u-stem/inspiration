@@ -26,6 +26,9 @@ from app.services.rhyme import get_rhyme_index
 
 logger = logging.getLogger(__name__)
 
+# Pattern search retrieves candidates before detailed matching
+MAX_PATTERN_SEARCH_CANDIDATES = 100000
+
 router = APIRouter(prefix="/rhyme", tags=["rhyme"])
 
 
@@ -58,11 +61,11 @@ def _word_priority(word: str) -> tuple[int, int]:
     has_kanji = any("\u4e00" <= c <= "\u9fff" for c in word)
     has_hiragana = any("\u3040" <= c <= "\u309f" for c in word)
     has_katakana = any("\u30a0" <= c <= "\u30ff" for c in word)
-    has_symbol = any(
-        c
-        in "()（）「」『』【】・#＃&＆@＠!！?？*＊%％^＾~〜_＿+=<>《》-－―─—.．:：;；,'\"'、。○●☆★♪♯♭"
-        for c in word
+    noise_symbols = (
+        "()（）「」『』【】・#＃&＆@＠!！?？*＊%％^＾~〜_＿"
+        "+=<>《》-－―─—.．:：;；,'\"'、。○●☆★♪♯♭"
     )
+    has_symbol = any(c in noise_symbols for c in word)
     has_digit = any(c.isdigit() for c in word)
     has_alpha = any(c.isascii() and c.isalpha() for c in word)
 
@@ -169,7 +172,7 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
             consonant_pattern=consonant_pattern,
             prefix=is_prefix,
             suffix=is_suffix,
-            limit=100000,  # Higher limit to avoid missing matches
+            limit=MAX_PATTERN_SEARCH_CANDIDATES,
         )
 
         matches: list[tuple[int, tuple[int, int], Any]] = []  # (score, priority, entry)

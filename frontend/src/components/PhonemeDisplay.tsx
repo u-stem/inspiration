@@ -2,6 +2,30 @@
 
 import type { Phoneme } from "@/types";
 
+const MORA_MAP: Record<string, Record<string, string>> = {
+  "": { a: "あ", i: "い", u: "う", e: "え", o: "お", n: "ん" },
+  k: { a: "か", i: "き", u: "く", e: "け", o: "こ" },
+  g: { a: "が", i: "ぎ", u: "ぐ", e: "げ", o: "ご" },
+  s: { a: "さ", i: "し", u: "す", e: "せ", o: "そ" },
+  z: { a: "ざ", i: "じ", u: "ず", e: "ぜ", o: "ぞ" },
+  t: { a: "た", i: "ち", u: "つ", e: "て", o: "と" },
+  d: { a: "だ", i: "ぢ", u: "づ", e: "で", o: "ど" },
+  n: { a: "な", i: "に", u: "ぬ", e: "ね", o: "の" },
+  h: { a: "は", i: "ひ", u: "ふ", e: "へ", o: "ほ" },
+  b: { a: "ば", i: "び", u: "ぶ", e: "べ", o: "ぼ" },
+  p: { a: "ぱ", i: "ぴ", u: "ぷ", e: "ぺ", o: "ぽ" },
+  m: { a: "ま", i: "み", u: "む", e: "め", o: "も" },
+  y: { a: "や", u: "ゆ", o: "よ" },
+  r: { a: "ら", i: "り", u: "る", e: "れ", o: "ろ" },
+  w: { a: "わ", o: "を" },
+  sh: { i: "し" },
+  ch: { i: "ち" },
+  ts: { u: "つ" },
+  f: { u: "ふ" },
+  j: { i: "じ" },
+  N: { n: "ん" },
+};
+
 interface PhonemeDisplayProps {
   phonemes: Phoneme[];
   fixConsonants?: boolean[];
@@ -13,31 +37,6 @@ interface PhonemeDisplayProps {
 
 function getHiragana(phoneme: Phoneme): string {
   const { consonant, vowel } = phoneme;
-
-  const MORA_MAP: Record<string, Record<string, string>> = {
-    "": { a: "あ", i: "い", u: "う", e: "え", o: "お", n: "ん" },
-    k: { a: "か", i: "き", u: "く", e: "け", o: "こ" },
-    g: { a: "が", i: "ぎ", u: "ぐ", e: "げ", o: "ご" },
-    s: { a: "さ", i: "し", u: "す", e: "せ", o: "そ" },
-    z: { a: "ざ", i: "じ", u: "ず", e: "ぜ", o: "ぞ" },
-    t: { a: "た", i: "ち", u: "つ", e: "て", o: "と" },
-    d: { a: "だ", i: "ぢ", u: "づ", e: "で", o: "ど" },
-    n: { a: "な", i: "に", u: "ぬ", e: "ね", o: "の" },
-    h: { a: "は", i: "ひ", u: "ふ", e: "へ", o: "ほ" },
-    b: { a: "ば", i: "び", u: "ぶ", e: "べ", o: "ぼ" },
-    p: { a: "ぱ", i: "ぴ", u: "ぷ", e: "ぺ", o: "ぽ" },
-    m: { a: "ま", i: "み", u: "む", e: "め", o: "も" },
-    y: { a: "や", u: "ゆ", o: "よ" },
-    r: { a: "ら", i: "り", u: "る", e: "れ", o: "ろ" },
-    w: { a: "わ", o: "を" },
-    sh: { i: "し" },
-    ch: { i: "ち" },
-    ts: { u: "つ" },
-    f: { u: "ふ" },
-    j: { i: "じ" },
-    N: { n: "ん" },
-  };
-
   const consonantMap = MORA_MAP[consonant];
   if (consonantMap) {
     return consonantMap[vowel] || `${consonant}${vowel}`;

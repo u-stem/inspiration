@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
 
 export async function POST(request: Request) {
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/rhyme/update-index?${params}`,
+      `${BACKEND_URL}/api/rhyme/update-index?${params}`,
       {
         method: "POST",
         headers: {

@@ -17,6 +17,8 @@ export interface PatternSearchRequest {
   sort: SortOrder;
   limit: number;
   offset: number;
+  mora_min?: number;
+  mora_max?: number;
 }
 
 export interface PatternAnalyzeResponse {
@@ -85,6 +87,8 @@ export interface EnglishSearchRequest {
   sort: SortOrder;
   limit: number;
   offset: number;
+  mora_min?: number;
+  mora_max?: number;
 }
 
 export interface EnglishSearchResponse {

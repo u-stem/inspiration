@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Loader2, Search } from "lucide-react";
+import { Clock, Loader2, Search, Trash2, X } from "lucide-react";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -24,6 +24,8 @@ interface HiraganaInputProps {
   onValueChange?: (value: string) => void;
   history?: HistoryItem[];
   onHistorySelect?: (word: string) => void;
+  onHistoryRemove?: (word: string) => void;
+  onHistoryClear?: () => void;
   compact?: boolean;
   hideSearchButton?: boolean;
 }
@@ -48,6 +50,8 @@ export function HiraganaInput({
   onValueChange,
   history = [],
   onHistorySelect,
+  onHistoryRemove,
+  onHistoryClear,
   compact = false,
   hideSearchButton = false,
 }: HiraganaInputProps) {
@@ -256,21 +260,60 @@ export function HiraganaInput({
             ref={suggestionsRef}
             className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 overflow-hidden"
           >
+            {/* Header with clear all button */}
+            {onHistoryClear && (
+              <div className="px-3 py-1.5 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-xs text-slate-400">検索履歴</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onHistoryClear();
+                    setShowSuggestions(false);
+                  }}
+                  className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  全削除
+                </button>
+              </div>
+            )}
             <div className="py-1">
               {filteredHistory.map((item, index) => (
-                <button
+                <div
                   key={`${item}-${index}`}
-                  type="button"
-                  onClick={() => handleSelectSuggestion(item)}
-                  className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                  className={`flex items-center transition-colors ${
                     index === selectedIndex
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-700 hover:bg-slate-50"
+                      ? "bg-blue-50"
+                      : "hover:bg-slate-50"
                   }`}
                 >
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  {item}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSuggestion(item)}
+                    className={`flex-1 px-4 py-2 text-left text-sm flex items-center gap-2 ${
+                      index === selectedIndex
+                        ? "text-blue-700"
+                        : "text-slate-700"
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    {item}
+                  </button>
+                  {onHistoryRemove && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onHistoryRemove(item);
+                      }}
+                      className="px-3 py-2 text-slate-300 hover:text-red-500 transition-colors"
+                      title="削除"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>

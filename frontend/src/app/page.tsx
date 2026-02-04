@@ -43,6 +43,7 @@ export default function Home() {
   const [resultTab, setResultTab] = useState<ResultTab>("search");
   const [position, setPosition] = useState<Position>("suffix");
   const [matchPattern, setMatchPattern] = useState<MatchPattern>("all");
+  const [moraMax, setMoraMax] = useState<number | undefined>(undefined);
 
   const {
     input,
@@ -53,6 +54,7 @@ export default function Home() {
     isLoading,
     error,
     searchOptions,
+    maxMoraInResults,
     analyze,
     search,
     goToPage,
@@ -68,12 +70,13 @@ export default function Home() {
     isLoading: englishIsLoading,
     error: englishError,
     searchOptions: englishSearchOptions,
+    maxMoraInResults: englishMaxMoraInResults,
     search: searchEnglish,
     goToPage: goToEnglishPage,
     updateOptions: updateEnglishOptions,
   } = useEnglishRhymeSearch();
 
-  const { history, addToHistory } = useHistory();
+  const { history, addToHistory, removeFromHistory, clearHistory } = useHistory();
 
   const {
     favorites,
@@ -244,6 +247,8 @@ export default function Home() {
                 onValueChange={setInputValue}
                 history={history}
                 onHistorySelect={handleHistorySelect}
+                onHistoryRemove={removeFromHistory}
+                onHistoryClear={clearHistory}
                 compact
                 hideSearchButton
               />
@@ -320,6 +325,7 @@ export default function Home() {
                 ))}
               </div>
             </div>
+
           </div>
 
             {/* Pattern Builder - カスタム選択時のみUI表示、それ以外はパターン生成のみ */}
@@ -334,8 +340,6 @@ export default function Home() {
                   position={position}
                   matchPattern={matchPattern}
                   onPatternChange={handlePatternChange}
-                  onPositionChange={setPosition}
-                  showPositionSelector={false}
                 />
               </div>
             )}
@@ -347,8 +351,6 @@ export default function Home() {
                 position={position}
                 matchPattern={matchPattern}
                 onPatternChange={handlePatternChange}
-                onPositionChange={setPosition}
-                showPositionSelector={false}
                 hidden
               />
             )}
@@ -389,11 +391,18 @@ export default function Home() {
                   error={error}
                   rubyFormat={rubyFormat}
                   sortOrder={searchOptions.sort}
+                  moraMax={moraMax}
+                  maxMoraInResults={maxMoraInResults}
                   isFavorite={isFavorite}
                   onToggleFavorite={handleToggleFavorite}
                   onPageChange={goToPage}
                   onRubyFormatChange={setRubyFormat}
                   onSortChange={(sort) => updateOptions({ sort })}
+                  onMoraMaxChange={(value) => {
+                    setMoraMax(value);
+                    updateOptions({ moraMax: value });
+                    updateEnglishOptions({ moraMax: value });
+                  }}
                   onWordClick={handleWordClick}
                 />
               ) : (
@@ -407,10 +416,17 @@ export default function Home() {
                   isLoading={englishIsLoading}
                   error={englishError}
                   sortOrder={englishSearchOptions.sort}
+                  moraMax={moraMax}
+                  maxMoraInResults={englishMaxMoraInResults}
                   isFavorite={isFavorite}
                   onToggleFavorite={handleEnglishToggleFavorite}
                   onPageChange={goToEnglishPage}
                   onSortChange={(sort) => updateEnglishOptions({ sort })}
+                  onMoraMaxChange={(value) => {
+                    setMoraMax(value);
+                    updateOptions({ moraMax: value });
+                    updateEnglishOptions({ moraMax: value });
+                  }}
                   onWordClick={handleEnglishWordClick}
                 />
               )

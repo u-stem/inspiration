@@ -192,6 +192,12 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
         matches: list[tuple[int, tuple[int, int], Any]] = []  # (score, priority, entry)
 
         for entry in candidates:
+            # Apply mora filter
+            if request.mora_min is not None and entry.mora_count < request.mora_min:
+                continue
+            if request.mora_max is not None and entry.mora_count > request.mora_max:
+                continue
+
             is_match, score = matcher.match(entry, parsed)
             if is_match:
                 priority = _word_priority(entry.word)
@@ -368,6 +374,12 @@ def search_english_rhymes(request: EnglishSearchRequest) -> EnglishSearchRespons
         matches: list[tuple[int, str, Any]] = []  # (score, word, entry)
 
         for entry in candidates:
+            # Apply syllable count filter (mora equivalent for English)
+            if request.mora_min is not None and entry.syllable_count < request.mora_min:
+                continue
+            if request.mora_max is not None and entry.syllable_count > request.mora_max:
+                continue
+
             # Create a simple entry-like object for the matcher
             # We use vowels and consonants directly
             score = _calculate_english_match_score(entry, parsed)

@@ -48,11 +48,14 @@ interface JapaneseResultListProps {
   error: string | null;
   rubyFormat: RubyFormat;
   sortOrder: SortOrder;
+  moraMax?: number;
+  maxMoraInResults?: number;
   isFavorite: (word: string) => boolean;
   onToggleFavorite: (result: PatternRhymeResult) => void;
   onPageChange: (page: number) => void;
   onRubyFormatChange: (format: RubyFormat) => void;
   onSortChange: (sort: SortOrder) => void;
+  onMoraMaxChange?: (value: number | undefined) => void;
   onWordClick: (word: string, reading: string) => void;
 }
 
@@ -67,10 +70,13 @@ interface EnglishResultListProps {
   isLoading: boolean;
   error: string | null;
   sortOrder: SortOrder;
+  moraMax?: number;
+  maxMoraInResults?: number;
   isFavorite: (word: string) => boolean;
   onToggleFavorite: (result: EnglishRhymeResult) => void;
   onPageChange: (page: number) => void;
   onSortChange: (sort: SortOrder) => void;
+  onMoraMaxChange?: (value: number | undefined) => void;
   onWordClick: (word: string) => void;
 }
 
@@ -176,12 +182,12 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
         <div className="flex items-center gap-4">
           {/* ルビ選択（日本語のみ） */}
           {isJapanese && "rubyFormat" in props && "onRubyFormatChange" in props && (
-            <div className="flex items-center gap-1.5">
-              <label className="text-xs text-slate-500">ルビ:</label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">ルビ</span>
               <select
                 value={props.rubyFormat}
                 onChange={(e) => props.onRubyFormatChange(e.target.value as RubyFormat)}
-                className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-1.5 rounded-full text-sm bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
               >
                 {RUBY_FORMATS.map((f) => (
                   <option key={f.value} value={f.value}>
@@ -191,12 +197,37 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
               </select>
             </div>
           )}
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-slate-500">並び順:</label>
+          {/* モーラフィルター */}
+          {"onMoraMaxChange" in props && props.onMoraMaxChange && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">{isJapanese ? "モーラ" : "音節"}</span>
+              <input
+                type="number"
+                min={1}
+                max={props.maxMoraInResults ?? 20}
+                value={props.moraMax ?? props.maxMoraInResults ?? ""}
+                onChange={(e) => props.onMoraMaxChange!(e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="上限"
+                className="w-16 px-3 py-1.5 rounded-full text-sm bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500 text-center"
+              />
+              {props.moraMax !== undefined && props.moraMax !== props.maxMoraInResults && (
+                <button
+                  type="button"
+                  onClick={() => props.onMoraMaxChange!(undefined)}
+                  className="text-sm text-slate-400 hover:text-slate-600"
+                  title="リセット"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-400">並び順</span>
             <select
               value={sortOrder}
               onChange={(e) => onSortChange(e.target.value as SortOrder)}
-              className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 rounded-full text-sm bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
             >
               {sorts.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -205,7 +236,7 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
               ))}
             </select>
           </div>
-          <span className="text-xs text-slate-500">
+          <span className="text-sm text-slate-400">
             {page} / {totalPages} ページ（{total}件）
           </span>
         </div>

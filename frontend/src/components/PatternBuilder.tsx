@@ -15,8 +15,6 @@ interface PatternBuilderProps {
   position?: Position;
   matchPattern?: MatchPattern;
   onPatternChange: (pattern: string) => void;
-  onPositionChange?: (position: Position) => void;
-  showPositionSelector?: boolean;
   hidden?: boolean;
 }
 
@@ -113,8 +111,6 @@ export function PatternBuilder({
   position: externalPosition,
   matchPattern = "all",
   onPatternChange,
-  onPositionChange,
-  showPositionSelector = true,
   hidden = false,
 }: PatternBuilderProps) {
   const len = phonemes.length;
@@ -127,11 +123,9 @@ export function PatternBuilder({
   const [customFixVowels, setCustomFixVowels] = useState<boolean[]>(
     () => Array(len).fill(true)
   );
-  const [internalPosition, setInternalPosition] = useState<Position>("suffix");
 
-  // Use external position if provided, otherwise use internal
-  const customPosition = externalPosition ?? internalPosition;
-  const setCustomPosition = onPositionChange ?? setInternalPosition;
+  // Use external position if provided, default to suffix
+  const customPosition = externalPosition ?? "suffix";
 
   // Reset custom state when phonemes length changes
   useEffect(() => {
@@ -215,27 +209,6 @@ export function PatternBuilder({
       return next;
     });
   }, []);
-
-  const handleSetAllConsonantsFixed = useCallback(() => {
-    setCustomFixConsonants(Array(len).fill(true));
-  }, [len]);
-
-  const handleSetAllConsonantsOptional = useCallback(() => {
-    setCustomFixConsonants(Array(len).fill(false));
-  }, [len]);
-
-  const handleSetAllVowelsFixed = useCallback(() => {
-    setCustomFixVowels(Array(len).fill(true));
-  }, [len]);
-
-  const handleSetAllVowelsOptional = useCallback(() => {
-    setCustomFixVowels(Array(len).fill(false));
-  }, [len]);
-
-  const handleResetAll = useCallback(() => {
-    setCustomFixConsonants(Array(len).fill(true));
-    setCustomFixVowels(Array(len).fill(true));
-  }, [len]);
 
   if (phonemes.length === 0) {
     return null;

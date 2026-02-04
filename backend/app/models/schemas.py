@@ -32,6 +32,8 @@ class PatternSearchRequest(BaseModel):
     sort: SortOrder = Field(default=SortOrder.RELEVANCE, description="Sort order")
     limit: int = Field(default=20, ge=1, le=500)
     offset: int = Field(default=0, ge=0)
+    mora_min: int | None = Field(default=None, ge=1, description="Minimum mora count filter")
+    mora_max: int | None = Field(default=None, ge=1, description="Maximum mora count filter")
 
 
 class PatternAnalyzeResponse(BaseModel):
@@ -104,6 +106,8 @@ class EnglishSearchRequest(BaseModel):
     sort: SortOrder = Field(default=SortOrder.RELEVANCE, description="Sort order")
     limit: int = Field(default=20, ge=1, le=500)
     offset: int = Field(default=0, ge=0)
+    mora_min: int | None = Field(default=None, ge=1, description="Minimum syllable count filter")
+    mora_max: int | None = Field(default=None, ge=1, description="Maximum syllable count filter")
 
 
 class EnglishSearchResponse(BaseModel):

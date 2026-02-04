@@ -22,11 +22,15 @@ interface UseRhymeSearchState {
 interface SearchOptions {
   sort: SortOrder;
   limit: number;
+  moraMin?: number;
+  moraMax?: number;
 }
 
 const DEFAULT_OPTIONS: SearchOptions = {
   sort: "relevance",
   limit: 20,
+  moraMin: undefined,
+  moraMax: undefined,
 };
 
 function sortResults(
@@ -66,12 +70,27 @@ export function useRhymeSearch(initialOptions: Partial<SearchOptions> = {}) {
 
   const [page, setPage] = useState(1);
 
+  const maxMoraInResults = useMemo(() => {
+    if (state.allResults.length === 0) return undefined;
+    return Math.max(...state.allResults.map((r) => r.mora_count));
+  }, [state.allResults]);
+
+  const effectiveMoraMax = searchOptions.moraMax ?? maxMoraInResults;
+
+  const filteredResults = useMemo(() => {
+    let filtered = state.allResults;
+    if (effectiveMoraMax !== undefined) {
+      filtered = filtered.filter((r) => r.mora_count <= effectiveMoraMax);
+    }
+    return filtered;
+  }, [state.allResults, effectiveMoraMax]);
+
   const sortedResults = useMemo(
-    () => sortResults(state.allResults, searchOptions.sort),
-    [state.allResults, searchOptions.sort]
+    () => sortResults(filteredResults, searchOptions.sort),
+    [filteredResults, searchOptions.sort]
   );
 
-  const total = state.allResults.length;
+  const total = filteredResults.length;
   const totalPages = Math.max(1, Math.ceil(total / searchOptions.limit));
   const results = useMemo(() => {
     const start = (page - 1) * searchOptions.limit;
@@ -184,6 +203,7 @@ export function useRhymeSearch(initialOptions: Partial<SearchOptions> = {}) {
     isLoading: state.isLoading,
     error: state.error,
     searchOptions,
+    maxMoraInResults,
     analyze,
     search,
     goToPage,

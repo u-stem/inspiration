@@ -1,22 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Phoneme, PresetType } from "@/types";
 
 import { PhonemeDisplay } from "./PhonemeDisplay";
 
+type Position = "prefix" | "suffix" | "contains" | "exact";
+type MatchPattern = "all" | "vowel" | "consonant" | "custom";
+
 interface PatternBuilderProps {
   phonemes: Phoneme[];
   preset: PresetType;
   position?: Position;
+  matchPattern?: MatchPattern;
   onPatternChange: (pattern: string) => void;
   onPositionChange?: (position: Position) => void;
   showPositionSelector?: boolean;
   hidden?: boolean;
 }
-
-type Position = "prefix" | "suffix" | "contains" | "exact";
 
 function buildPattern(
   phonemes: Phoneme[],
@@ -109,6 +111,7 @@ export function PatternBuilder({
   phonemes,
   preset,
   position: externalPosition,
+  matchPattern = "all",
   onPatternChange,
   onPositionChange,
   showPositionSelector = true,
@@ -136,23 +139,51 @@ export function PatternBuilder({
     setCustomFixVowels(Array(len).fill(true));
   }, [len]);
 
+  // カスタムモードに切り替えた時だけ状態をリセット
+  const prevMatchPatternRef = useRef(matchPattern);
+  useEffect(() => {
+    if (matchPattern === "custom" && prevMatchPatternRef.current !== "custom") {
+      // カスタムに切り替えた時は全選択状態にリセット
+      setCustomFixConsonants(Array(len).fill(true));
+      setCustomFixVowels(Array(len).fill(true));
+    }
+    prevMatchPatternRef.current = matchPattern;
+  }, [matchPattern, len]);
+
   // Get config based on preset or custom state
   const presetConfig = useMemo(
     () => getPresetConfig(preset, len),
     [preset, len]
   );
 
-  const fixConsonants = isCustom
-    ? customFixConsonants.length === len
-      ? customFixConsonants
-      : Array(len).fill(true)
-    : presetConfig?.fixConsonants ?? Array(len).fill(true);
+  // matchPatternから直接値を導出（カスタム以外）、カスタム時は内部状態を使用
+  const fixConsonants = useMemo(() => {
+    if (matchPattern === "custom") {
+      return customFixConsonants.length === len ? customFixConsonants : Array(len).fill(true);
+    }
+    switch (matchPattern) {
+      case "vowel":
+        return Array(len).fill(false);
+      case "consonant":
+      case "all":
+      default:
+        return Array(len).fill(true);
+    }
+  }, [matchPattern, customFixConsonants, len]);
 
-  const fixVowels = isCustom
-    ? customFixVowels.length === len
-      ? customFixVowels
-      : Array(len).fill(true)
-    : presetConfig?.fixVowels ?? Array(len).fill(true);
+  const fixVowels = useMemo(() => {
+    if (matchPattern === "custom") {
+      return customFixVowels.length === len ? customFixVowels : Array(len).fill(true);
+    }
+    switch (matchPattern) {
+      case "consonant":
+        return Array(len).fill(false);
+      case "vowel":
+      case "all":
+      default:
+        return Array(len).fill(true);
+    }
+  }, [matchPattern, customFixVowels, len]);
 
   const position = isCustom
     ? customPosition
@@ -216,99 +247,15 @@ export function PatternBuilder({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Phoneme Display */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          音素パターン
-          {isCustom && (
-            <span className="ml-2 text-xs text-slate-400">
-              クリックで固定/任意を切り替え
-            </span>
-          )}
-        </label>
-        <PhonemeDisplay
-          phonemes={phonemes}
-          fixConsonants={fixConsonants}
-          fixVowels={fixVowels}
-          onToggleConsonant={isCustom ? handleToggleConsonant : undefined}
-          onToggleVowel={isCustom ? handleToggleVowel : undefined}
-          interactive={isCustom}
-        />
-
-        {/* Bulk action buttons */}
-        {isCustom && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-slate-500">子音:</span>
-              <button
-                onClick={handleSetAllConsonantsFixed}
-                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
-              >
-                固定
-              </button>
-              <button
-                onClick={handleSetAllConsonantsOptional}
-                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
-              >
-                任意
-              </button>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-slate-500">母音:</span>
-              <button
-                onClick={handleSetAllVowelsFixed}
-                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
-              >
-                固定
-              </button>
-              <button
-                onClick={handleSetAllVowelsOptional}
-                className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
-              >
-                任意
-              </button>
-            </div>
-            <button
-              onClick={handleResetAll}
-              className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition-colors"
-            >
-              リセット
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Position Selection (only for custom, when not externally controlled, and when showPositionSelector is true) */}
-      {isCustom && !externalPosition && showPositionSelector && (
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            位置
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {(["prefix", "suffix", "exact", "contains"] as Position[]).map((pos) => (
-              <button
-                key={pos}
-                onClick={() => setCustomPosition(pos)}
-                className={`px-3 py-1.5 rounded-md text-sm transition-all ${
-                  position === pos
-                    ? "bg-blue-500 text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {pos === "prefix"
-                  ? "先頭（頭韻）"
-                  : pos === "suffix"
-                    ? "末尾（脚韻）"
-                    : pos === "exact"
-                      ? "完全一致"
-                      : "含む"}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
+    <div className="flex justify-center">
+      <PhonemeDisplay
+        phonemes={phonemes}
+        fixConsonants={fixConsonants}
+        fixVowels={fixVowels}
+        onToggleConsonant={isCustom ? handleToggleConsonant : undefined}
+        onToggleVowel={isCustom ? handleToggleVowel : undefined}
+        interactive={isCustom}
+      />
     </div>
   );
 }

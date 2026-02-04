@@ -171,14 +171,9 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
   return (
     <div className="space-y-6">
       {/* Results Header */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <h2 className="text-lg font-bold text-slate-800">
-          検索結果
-          <span className="ml-2 text-sm font-normal text-slate-500">
-            {total.toLocaleString()}件
-          </span>
-        </h2>
-        <div className="flex items-center gap-4 ml-auto">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 className="text-sm font-medium text-slate-600">検索結果</h2>
+        <div className="flex items-center gap-4">
           {/* ルビ選択（日本語のみ） */}
           {isJapanese && "rubyFormat" in props && "onRubyFormatChange" in props && (
             <div className="flex items-center gap-1.5">
@@ -210,11 +205,9 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
               ))}
             </select>
           </div>
-          {totalPages > 1 && (
-            <span className="text-xs text-slate-500">
-              {page} / {totalPages} ページ
-            </span>
-          )}
+          <span className="text-xs text-slate-500">
+            {page} / {totalPages} ページ（{total}件）
+          </span>
         </div>
       </div>
 
@@ -266,7 +259,7 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && !isLoading && (
+      {results.length > 0 && !isLoading && (
         <div className="flex justify-center items-center gap-1 pt-4">
           <button
             onClick={(e) => {

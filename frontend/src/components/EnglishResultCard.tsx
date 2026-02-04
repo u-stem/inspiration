@@ -95,37 +95,37 @@ export function EnglishResultCard({
       <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1">
         <button
           onClick={handleCopyWord}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded transition-colors"
           title="コピー"
         >
           {copied === "word" ? (
-            <Check className="w-3 h-3 text-green-500" />
+            <Check className="w-3.5 h-3.5 text-green-500" />
           ) : (
-            <Copy className="w-3 h-3" />
+            <Copy className="w-3.5 h-3.5" />
           )}
           <span>コピー</span>
         </button>
 
         <button
           onClick={handleCopyWithKatakana}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded transition-colors"
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded transition-colors"
           title="カタカナ付きコピー"
         >
           {copied === "katakana" ? (
-            <Check className="w-3 h-3 text-green-500" />
+            <Check className="w-3.5 h-3.5 text-green-500" />
           ) : (
-            <Copy className="w-3 h-3" />
+            <Copy className="w-3.5 h-3.5" />
           )}
-          <span>カナ付き</span>
+          <span>カナ</span>
         </button>
 
         <button
           onClick={handleWebSearch}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded transition-colors ml-auto"
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded transition-colors ml-auto"
           title="Web検索"
         >
-          <ExternalLink className="w-3 h-3" />
-          <span>Web検索</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+          <span>検索</span>
         </button>
       </div>
     </div>

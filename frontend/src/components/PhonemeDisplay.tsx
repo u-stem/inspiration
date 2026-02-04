@@ -77,9 +77,13 @@ export function PhonemeDisplay({
         return (
           <div
             key={index}
-            className="flex flex-col items-center bg-slate-50 rounded-lg p-2 min-w-[60px]"
+            className={`flex flex-col items-center rounded-lg p-3 min-w-[60px] transition-all ${
+              interactive
+                ? "bg-slate-50 hover:bg-slate-100 hover:shadow-sm"
+                : "bg-slate-50"
+            }`}
           >
-            <span className="text-lg font-medium text-slate-800 mb-1">
+            <span className="text-lg font-medium text-slate-800 mb-1.5">
               {hiragana}
             </span>
             <div className="flex gap-1 text-xs">
@@ -87,24 +91,24 @@ export function PhonemeDisplay({
                 <>
                   <button
                     onClick={() => onToggleConsonant?.(index)}
-                    className={`px-1.5 py-0.5 rounded transition-colors ${
+                    className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
                       consonantFixed
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-200 text-slate-500"
+                        ? "bg-blue-500 text-white hover:bg-blue-600"
+                        : "bg-slate-200 text-slate-500 hover:bg-slate-300"
                     }`}
-                    title={consonantFixed ? "子音: 固定" : "子音: 任意"}
+                    title={consonantFixed ? "クリックで任意に変更" : "クリックで固定に変更"}
                   >
                     {phoneme.consonant || "-"}
                   </button>
                   {phoneme.vowel && (
                     <button
                       onClick={() => onToggleVowel?.(index)}
-                      className={`px-1.5 py-0.5 rounded transition-colors ${
+                      className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
                         vowelFixed
-                          ? "bg-green-500 text-white"
-                          : "bg-slate-200 text-slate-500"
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "bg-slate-200 text-slate-500 hover:bg-slate-300"
                       }`}
-                      title={vowelFixed ? "母音: 固定" : "母音: 任意"}
+                      title={vowelFixed ? "クリックで任意に変更" : "クリックで固定に変更"}
                     >
                       {phoneme.vowel}
                     </button>

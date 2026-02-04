@@ -24,6 +24,8 @@ interface HiraganaInputProps {
   onValueChange?: (value: string) => void;
   history?: HistoryItem[];
   onHistorySelect?: (word: string) => void;
+  compact?: boolean;
+  hideSearchButton?: boolean;
 }
 
 const HIRAGANA_REGEX = /^[ぁ-ゖー]*$/;
@@ -46,6 +48,8 @@ export function HiraganaInput({
   onValueChange,
   history = [],
   onHistorySelect,
+  compact = false,
+  hideSearchButton = false,
 }: HiraganaInputProps) {
   const [internalValue, setInternalValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -203,7 +207,6 @@ export function HiraganaInput({
   return (
     <form onSubmit={handleSubmit} className="w-full">
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
         <input
           ref={inputRef}
           type="text"
@@ -213,8 +216,16 @@ export function HiraganaInput({
           onFocus={handleFocus}
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
-          placeholder="韻を探したい読み（ひらがな）を入力..."
-          className={`w-full pl-12 pr-24 py-3.5 text-base bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all placeholder:text-slate-400 ${
+          placeholder={compact ? "ひらがなで検索..." : "韻を探したい読み（ひらがな）を入力..."}
+          className={`w-full border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all placeholder:text-slate-400 ${
+            compact
+              ? hideSearchButton
+                ? "px-3 py-2 text-sm bg-slate-50 focus:bg-white"
+                : "pl-3 pr-10 py-2 text-sm bg-slate-50 focus:bg-white"
+              : hideSearchButton
+                ? "px-4 py-3.5 text-base bg-slate-50 focus:bg-white"
+                : "pl-4 pr-12 py-3.5 text-base bg-slate-50 focus:bg-white"
+          } ${
             error
               ? "border-red-300 focus:ring-red-500"
               : "border-slate-200 focus:ring-blue-500"
@@ -222,19 +233,28 @@ export function HiraganaInput({
           disabled={isLoading}
           autoComplete="off"
         />
-        <button
-          type="submit"
-          disabled={isLoading || !value.trim() || !!error}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "検索"}
-        </button>
+        {!hideSearchButton && (
+          <button
+            type="submit"
+            disabled={isLoading || !value.trim() || !!error}
+            className={`absolute right-1.5 top-1/2 -translate-y-1/2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+              compact ? "p-1.5" : "p-2"
+            }`}
+            aria-label="検索"
+          >
+            {isLoading ? (
+              <Loader2 className={`animate-spin ${compact ? "w-4 h-4" : "w-5 h-5"}`} />
+            ) : (
+              <Search className={compact ? "w-4 h-4" : "w-5 h-5"} />
+            )}
+          </button>
+        )}
 
         {/* History Suggestions Dropdown */}
         {showSuggestions && filteredHistory.length > 0 && (
           <div
             ref={suggestionsRef}
-            className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden"
+            className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 overflow-hidden"
           >
             <div className="py-1">
               {filteredHistory.map((item, index) => (
@@ -256,10 +276,12 @@ export function HiraganaInput({
           </div>
         )}
       </div>
-      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-      <p className="mt-2 text-xs text-slate-400">
-        カタカナは自動でひらがなに変換されます
-      </p>
+      {error && <p className={`text-red-500 ${compact ? "mt-1 text-xs" : "mt-2 text-sm"}`}>{error}</p>}
+      {!compact && (
+        <p className="mt-2 text-xs text-slate-400">
+          カタカナは自動でひらがなに変換されます
+        </p>
+      )}
     </form>
   );
 }

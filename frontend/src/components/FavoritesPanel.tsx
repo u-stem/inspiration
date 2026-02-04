@@ -28,29 +28,29 @@ export function FavoritesPanel({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium text-slate-800">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 className="text-sm font-medium text-slate-600">
           お気に入り
-          <span className="ml-2 text-sm font-normal text-slate-500">
-            {favorites.length}件
-          </span>
-        </h3>
-        <div className="flex gap-1">
-          <button
-            onClick={onExport}
-            className="p-2 text-slate-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-            aria-label="お気に入りをエクスポート"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onClear}
-            className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            aria-label="お気に入りをすべて削除"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+        </h2>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-slate-500">{favorites.length}件</span>
+          <div className="flex gap-1">
+            <button
+              onClick={onExport}
+              className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors"
+              title="エクスポート"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClear}
+              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+              title="すべて削除"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

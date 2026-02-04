@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Search } from "lucide-react";
+import { Heart, Loader2, Search } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 import {
@@ -18,12 +18,20 @@ import type { EnglishRhymeResult, PatternRhymeResult, Phoneme, SearchLanguage } 
 type RubyFormat = "katakana" | "half-katakana" | "hiragana";
 type ResultTab = "search" | "favorites";
 type Position = "prefix" | "suffix" | "contains" | "exact";
+type MatchPattern = "all" | "vowel" | "consonant" | "custom";
 
 const POSITIONS: { value: Position; label: string }[] = [
   { value: "suffix", label: "末尾（脚韻）" },
   { value: "prefix", label: "先頭（頭韻）" },
   { value: "exact", label: "完全一致" },
   { value: "contains", label: "含む" },
+];
+
+const MATCH_PATTERNS: { value: MatchPattern; label: string }[] = [
+  { value: "all", label: "すべて" },
+  { value: "vowel", label: "母音のみ" },
+  { value: "consonant", label: "子音のみ" },
+  { value: "custom", label: "カスタム" },
 ];
 
 export default function Home() {
@@ -34,6 +42,7 @@ export default function Home() {
   const [searchLanguage, setSearchLanguage] = useState<SearchLanguage>("ja");
   const [resultTab, setResultTab] = useState<ResultTab>("search");
   const [position, setPosition] = useState<Position>("suffix");
+  const [matchPattern, setMatchPattern] = useState<MatchPattern>("all");
 
   const {
     input,
@@ -129,16 +138,9 @@ export default function Home() {
         );
         const newPattern = patternParts.join("") + "*";
         setCurrentPattern(newPattern);
-        addToHistory(word);
-        if (searchLanguage === "ja") {
-          search(word, newPattern);
-        } else {
-          searchEnglish(word, newPattern);
-        }
-        setResultTab("search");
       }
     },
-    [analyze, search, searchEnglish, searchLanguage, addToHistory]
+    [analyze]
   );
 
   const handleWordClick = useCallback(
@@ -206,112 +208,172 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-slate-800">韻スピレーション</h1>
+      <header className="bg-white border-b border-slate-200">
+        <div className="px-6 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-slate-800">韻スピレーション</h1>
+          <button
+            onClick={() => setResultTab(resultTab === "favorites" ? "search" : "favorites")}
+            className={`relative p-2 rounded-full transition-colors ${
+              resultTab === "favorites"
+                ? "bg-red-50 text-red-500"
+                : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            }`}
+            title="お気に入り"
+          >
+            <Heart className={`w-5 h-5 ${resultTab === "favorites" ? "fill-current" : ""}`} />
+            {favorites.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {favorites.length > 9 ? "9+" : favorites.length}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Search Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-          <HiraganaInput
-            onSearch={handleSearch}
-            onReadingChange={handleReadingChange}
-            isLoading={isLoading}
-            value={inputValue}
-            onValueChange={setInputValue}
-            history={history}
-            onHistorySelect={handleHistorySelect}
-          />
-
-          {/* Settings Row */}
-          {phonemes.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-4">
-              {/* Language Select */}
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs text-slate-500">言語:</label>
-                <select
-                  value={searchLanguage}
-                  onChange={(e) => setSearchLanguage(e.target.value as SearchLanguage)}
-                  className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+      <main className="px-6 py-6">
+        {/* Search & Pattern Builder Section */}
+        <div className="mb-6 flex justify-center">
+          <div className="flex flex-col items-center">
+            {/* Search Input */}
+            <div className="mb-4 self-stretch">
+              <HiraganaInput
+                onSearch={handleSearch}
+                onReadingChange={handleReadingChange}
+                isLoading={isLoading}
+                value={inputValue}
+                onValueChange={setInputValue}
+                history={history}
+                onHistorySelect={handleHistorySelect}
+                compact
+                hideSearchButton
+              />
+            </div>
+            {/* Settings Row - Chip Style */}
+            <div className="flex items-center justify-center gap-6 mb-4">
+            {/* Language Chips */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">言語</span>
+              <div className="flex items-center rounded-full bg-slate-100 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setSearchLanguage("ja")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                    searchLanguage === "ja"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
                 >
-                  <option value="ja">日本語</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-
-              {/* Position Select */}
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs text-slate-500">韻の位置:</label>
-                <select
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value as Position)}
-                  className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border-0 focus:ring-2 focus:ring-blue-500"
+                  日本語
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchLanguage("en")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                    searchLanguage === "en"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
                 >
-                  {POSITIONS.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+                  英語
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Pattern Builder */}
-          {phonemes.length > 0 && (
-            <div className="mt-6">
+            {/* Position Chips */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">位置</span>
+              <div className="flex items-center rounded-full bg-slate-100 p-0.5">
+                {POSITIONS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPosition(p.value)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                      position === p.value
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Match Pattern Chips */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-400">音素</span>
+              <div className="flex items-center rounded-full bg-slate-100 p-0.5">
+                {MATCH_PATTERNS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setMatchPattern(p.value)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                      matchPattern === p.value
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+            {/* Pattern Builder - カスタム選択時のみUI表示、それ以外はパターン生成のみ */}
+            {phonemes.length > 0 && matchPattern === "custom" && (
+              <div className="mt-4 p-4 bg-slate-50 rounded-lg w-full max-w-3xl">
+                <p className="text-xs text-slate-500 text-center mb-3">
+                  クリックで子音・母音の音素パターンを切り替え
+                </p>
+                <PatternBuilder
+                  phonemes={phonemes}
+                  preset="custom"
+                  position={position}
+                  matchPattern={matchPattern}
+                  onPatternChange={handlePatternChange}
+                  onPositionChange={setPosition}
+                  showPositionSelector={false}
+                />
+              </div>
+            )}
+            {/* パターン生成のみ（非表示） */}
+            {phonemes.length > 0 && matchPattern !== "custom" && (
               <PatternBuilder
                 phonemes={phonemes}
                 preset="custom"
                 position={position}
+                matchPattern={matchPattern}
                 onPatternChange={handlePatternChange}
                 onPositionChange={setPosition}
                 showPositionSelector={false}
+                hidden
               />
+            )}
+
+            {/* Search Button */}
+            <div className="flex justify-center mt-4">
+              <button
+                type="button"
+                onClick={() => inputValue && handleSearch(inputValue)}
+                disabled={isLoading || !inputValue?.trim() || !currentPattern}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+                検索
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Results */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[300px]">
-          {/* Tabs */}
-          <div className="flex items-center gap-1 mb-4 border-b border-slate-200">
-            <button
-              onClick={() => setResultTab("search")}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                resultTab === "search"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Search className="w-4 h-4" />
-              検索結果
-              {hasResults && (
-                <span className="text-xs text-slate-400">
-                  ({searchLanguage === "ja" ? total : englishTotal})
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setResultTab("favorites")}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                resultTab === "favorites"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Heart className="w-4 h-4" />
-              お気に入り
-              {favorites.length > 0 && (
-                <span className="text-xs text-slate-400">
-                  ({favorites.length})
-                </span>
-              )}
-            </button>
-          </div>
-
+        <div className="mt-8 pt-6 border-t border-slate-200 min-h-[300px]">
           {/* Tab Content */}
           {resultTab === "search" ? (
             hasResults ? (
@@ -355,9 +417,13 @@ export default function Home() {
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                 <Search className="w-12 h-12 mb-4 opacity-50" />
-                <p className="text-lg font-medium">韻を探してみよう</p>
+                <p className="text-lg font-medium">
+                  {phonemes.length > 0 ? "検索ボタンを押してください" : "韻を探してみよう"}
+                </p>
                 <p className="text-sm mt-1">
-                  上の検索ボックスにひらがなを入力してください
+                  {phonemes.length > 0
+                    ? "音素パターンを調整して検索できます"
+                    : "ひらがなを入力して検索"}
                 </p>
               </div>
             )
@@ -372,12 +438,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-slate-400">
-          韻スピレーション - 日本語韻生成ツール
-        </div>
-      </footer>
     </div>
   );
 }

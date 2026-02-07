@@ -80,6 +80,7 @@ class IndexUpdateResponse(BaseModel):
 
 class Language(str, Enum):
     """Search language"""
+
     JAPANESE = "ja"
     ENGLISH = "en"
 

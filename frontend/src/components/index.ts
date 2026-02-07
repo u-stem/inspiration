@@ -7,3 +7,5 @@ export { PatternBuilder } from "./PatternBuilder";
 export { PhonemeDisplay } from "./PhonemeDisplay";
 export { ResultCard } from "./ResultCard";
 export { ResultList } from "./ResultList";
+export { ResultsSection } from "./ResultsSection";
+export { SearchSection } from "./SearchSection";

@@ -262,9 +262,7 @@ def build_sample_index(output_path: str = DEFAULT_OUTPUT) -> None:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Build English rhyme index from CMU dictionary"
-    )
+    parser = argparse.ArgumentParser(description="Build English rhyme index from CMU dictionary")
     parser.add_argument(
         "-o",
         "--output",

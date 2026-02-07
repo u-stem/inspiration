@@ -11,6 +11,7 @@ from typing import Self
 @dataclass
 class EnglishIndexEntry:
     """Entry in the English rhyme index."""
+
     word: str
     pronunciation: str
     katakana: str

@@ -62,8 +62,7 @@ def is_valid_word(surface: str) -> bool:
         return False
 
     noise_chars = (
-        "()（）「」『』【】・#＃&＆@＠!！?？*＊%％^＾~〜_＿+=<>《》\"'"
-        "、。○●☆★♪♯♭♀♂①②③④⑤⑥⑦⑧⑨⑩"
+        "()（）「」『』【】・#＃&＆@＠!！?？*＊%％^＾~〜_＿+=<>《》\"'、。○●☆★♪♯♭♀♂①②③④⑤⑥⑦⑧⑨⑩"
     )
     if any(c in noise_chars for c in surface):
         return False
@@ -72,8 +71,6 @@ def is_valid_word(surface: str) -> bool:
         return False
 
     return not any(c.isdigit() or c in "０１２３４５６７８９" for c in surface)
-
-
 
 
 def download_jmdict(cache_dir: Path) -> Path:
@@ -100,9 +97,10 @@ def download_jmdict(cache_dir: Path) -> Path:
             socket.setdefaulttimeout(original_timeout)
 
     print(f"Extracting: {gz_path}")
-    with gzip.open(gz_path, "rt", encoding="utf-8") as f_in, open(
-        xml_path, "w", encoding="utf-8"
-    ) as f_out:
+    with (
+        gzip.open(gz_path, "rt", encoding="utf-8") as f_in,
+        open(xml_path, "w", encoding="utf-8") as f_out,
+    ):
         f_out.write(f_in.read())
 
     return xml_path
@@ -284,9 +282,10 @@ def download_neologd_seed(cache_dir: Path) -> Path:
         socket.setdefaulttimeout(original_timeout)
 
     print(f"Extracting: {xz_path}")
-    with lzma.open(xz_path, "rt", encoding="utf-8") as f_in, open(
-        csv_path, "w", encoding="utf-8"
-    ) as f_out:
+    with (
+        lzma.open(xz_path, "rt", encoding="utf-8") as f_in,
+        open(csv_path, "w", encoding="utf-8") as f_out,
+    ):
         f_out.write(f_in.read())
 
     xz_path.unlink()

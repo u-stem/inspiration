@@ -69,7 +69,8 @@ export default function Home() {
     stats: noteStats,
     addEntry: addNote,
     removeEntry: removeNote,
-    getWordUsageCount,
+    addAnnotation,
+    removeAnnotation,
     clearAll: clearNotes,
   } = useCreativeNotes();
 
@@ -269,6 +270,8 @@ export default function Home() {
               stats={noteStats}
               onAdd={addNote}
               onRemove={removeNote}
+              onAddAnnotation={addAnnotation}
+              onRemoveAnnotation={removeAnnotation}
               onClear={clearNotes}
             />
           </div>
@@ -299,7 +302,6 @@ export default function Home() {
             englishMaxMoraInResults={englishMaxMoraInResults}
             favorites={favorites}
             isFavorite={isFavorite}
-            getWordUsageCount={getWordUsageCount}
             onToggleFavorite={handleToggleFavorite}
             onEnglishToggleFavorite={handleEnglishToggleFavorite}
             onPageChange={goToPage}

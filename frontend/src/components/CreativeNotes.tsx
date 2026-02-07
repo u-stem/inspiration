@@ -4,19 +4,28 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  Loader2,
   Plus,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
 
-import type { CreativeStats, LyricsEntry } from "@/types";
+import type { CreativeStats, LyricsEntry, RhymeAnnotation } from "@/types";
+
+import { AnnotatedLyrics } from "./AnnotatedLyrics";
 
 interface CreativeNotesProps {
   entries: LyricsEntry[];
   stats: CreativeStats;
-  onAdd: (title: string, content: string) => Promise<LyricsEntry | null>;
+  onAdd: (title: string, content: string) => LyricsEntry | null;
   onRemove: (id: string) => void;
+  onAddAnnotation: (
+    entryId: string,
+    color: string,
+    startOffset: number,
+    endOffset: number,
+    text: string,
+  ) => Promise<RhymeAnnotation | null>;
+  onRemoveAnnotation: (entryId: string, annotationId: string) => void;
   onClear: () => void;
 }
 
@@ -25,34 +34,27 @@ export function CreativeNotes({
   stats,
   onAdd,
   onRemove,
+  onAddAnnotation,
+  onRemoveAnnotation,
   onClear,
 }: CreativeNotesProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!title.trim() || !content.trim()) return;
 
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const entry = await onAdd(title.trim(), content.trim());
-      if (entry) {
-        setTitle("");
-        setContent("");
-      }
-    } catch {
-      setSaveError("保存に失敗しました。もう一度お試しください。");
-    } finally {
-      setIsSaving(false);
+    const entry = onAdd(title.trim(), content.trim());
+    if (entry) {
+      setTitle("");
+      setContent("");
+      setExpandedId(entry.id);
     }
   };
 
-  const topRhymes = Object.entries(stats.rhymeUsageCount)
+  const topRhymes = Object.entries(stats.rhymePatternCount)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
 
@@ -79,7 +81,6 @@ export function CreativeNotes({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="タイトル"
           className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          disabled={isSaving}
         />
         <textarea
           value={content}
@@ -87,27 +88,14 @@ export function CreativeNotes({
           placeholder="歌詞を入力..."
           rows={5}
           className="w-full mt-2 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-y"
-          disabled={isSaving}
         />
-        {saveError && (
-          <p className="mt-2 text-sm text-red-500">{saveError}</p>
-        )}
         <button
           onClick={handleSave}
-          disabled={isSaving || !title.trim() || !content.trim()}
+          disabled={!title.trim() || !content.trim()}
           className="mt-2 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              解析中...
-            </>
-          ) : (
-            <>
-              <Plus className="w-4 h-4" />
-              保存
-            </>
-          )}
+          <Plus className="w-4 h-4" />
+          保存
         </button>
       </div>
 
@@ -115,7 +103,7 @@ export function CreativeNotes({
       {topRhymes.length > 0 && (
         <div className="bg-white rounded-lg border border-slate-200 p-4">
           <h3 className="text-sm font-medium text-slate-700 mb-3">
-            よく使う韻 TOP10
+            よく使う韻パターン TOP10
           </h3>
           <div className="flex flex-wrap gap-2">
             {topRhymes.map(([pattern, count]) => (
@@ -187,7 +175,9 @@ export function CreativeNotes({
                         {entry.title}
                       </p>
                       <p className="text-xs text-slate-400">
-                        {dateStr} / {entry.words.length}語
+                        {dateStr}
+                        {entry.annotations.length > 0 &&
+                          ` / ${entry.annotations.length}箇所マーク`}
                       </p>
                     </div>
                     {isExpanded ? (
@@ -206,55 +196,17 @@ export function CreativeNotes({
                 </div>
 
                 {isExpanded && (
-                  <div className="px-3 pb-3 border-t border-slate-100">
-                    <pre className="mt-2 text-xs text-slate-600 whitespace-pre-wrap font-sans">
-                      {entry.content}
-                    </pre>
-                    {entry.rhyme_groups && entry.rhyme_groups.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs text-slate-400 mb-1.5">韻グループ</p>
-                        <div className="space-y-1">
-                          {entry.rhyme_groups.map((group) => (
-                            <div
-                              key={group.vowel_suffix}
-                              className="flex items-center gap-2 text-xs"
-                            >
-                              <span className="font-mono text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
-                                {group.vowel_suffix}
-                              </span>
-                              <span className="text-slate-600">
-                                {group.words.join(" / ")}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {entry.words.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs text-slate-400 mb-1.5">抽出語</p>
-                        <div className="flex flex-wrap gap-1">
-                          {entry.words.map((word, i) => (
-                            <span
-                              key={`${word.surface}-${i}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-slate-50 text-slate-600 rounded border border-slate-100"
-                            >
-                              {word.surface}
-                              {word.dictionary_form && word.dictionary_form !== word.surface && (
-                                <span className="text-[10px] text-slate-400">
-                                  ({word.dictionary_form})
-                                </span>
-                              )}
-                              {word.vowel_pattern && (
-                                <span className="text-[10px] font-mono text-emerald-500">
-                                  {word.vowel_pattern}
-                                </span>
-                              )}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  <div className="px-3 pb-3 border-t border-slate-100 pt-2">
+                    <AnnotatedLyrics
+                      content={entry.content}
+                      annotations={entry.annotations}
+                      onAddAnnotation={(color, start, end, text) =>
+                        onAddAnnotation(entry.id, color, start, end, text)
+                      }
+                      onRemoveAnnotation={(annotationId) =>
+                        onRemoveAnnotation(entry.id, annotationId)
+                      }
+                    />
                   </div>
                 )}
               </div>
@@ -267,7 +219,7 @@ export function CreativeNotes({
       {entries.length === 0 && topRhymes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
           <FileText className="w-10 h-10 mb-3 opacity-50" />
-          <p className="text-sm">歌詞を保存して韻の傾向を分析しよう</p>
+          <p className="text-sm">歌詞を保存して韻をマーキングしよう</p>
         </div>
       )}
     </div>

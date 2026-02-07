@@ -2,7 +2,7 @@ import type {
   EnglishSearchRequest,
   EnglishSearchResponse,
   IndexUpdateResponse,
-  LyricsAnalyzeResponse,
+  LyricsPhonemeResponse,
   PatternAnalyzeResponse,
   PatternSearchRequest,
   PatternSearchResponse,
@@ -79,10 +79,10 @@ export async function searchEnglishRhymes(
   });
 }
 
-export async function analyzeLyrics(
+export async function analyzePhoneme(
   text: string,
-): Promise<LyricsAnalyzeResponse> {
-  return fetchApi<LyricsAnalyzeResponse>("/lyrics/analyze", {
+): Promise<LyricsPhonemeResponse> {
+  return fetchApi<LyricsPhonemeResponse>("/lyrics/phoneme", {
     method: "POST",
     body: JSON.stringify({ text }),
   });

@@ -2,12 +2,12 @@
 
 import { useCallback, useMemo } from "react";
 
-import { analyzeLyrics } from "@/lib/api";
-import type { CreativeStats, LyricsEntry } from "@/types";
+import { analyzePhoneme } from "@/lib/api";
+import type { CreativeStats, LyricsEntry, RhymeAnnotation } from "@/types";
 
 import { createLocalStorageStore, useLocalStorageStore } from "./useLocalStorage";
 
-const STORAGE_KEY = "creative-notes";
+const STORAGE_KEY = "creative-notes-v2";
 const MAX_ENTRIES = 100;
 const EMPTY_ENTRIES: LyricsEntry[] = [];
 
@@ -19,7 +19,7 @@ function isValidEntry(item: unknown): item is LyricsEntry {
     typeof obj.title === "string" &&
     typeof obj.content === "string" &&
     typeof obj.createdAt === "string" &&
-    Array.isArray(obj.words)
+    Array.isArray(obj.annotations)
   );
 }
 
@@ -32,19 +32,16 @@ const notesStore = createLocalStorageStore<LyricsEntry[]>(
 export function useCreativeNotes() {
   const entries = useLocalStorageStore(notesStore);
 
-  const addEntry = useCallback(async (title: string, content: string) => {
+  const addEntry = useCallback((title: string, content: string) => {
     const current = notesStore.getSnapshot();
     if (current.length >= MAX_ENTRIES) return null;
-
-    const response = await analyzeLyrics(content);
 
     const entry: LyricsEntry = {
       id: crypto.randomUUID(),
       title,
       content,
       createdAt: new Date().toISOString(),
-      words: response.words,
-      rhyme_groups: response.rhyme_groups,
+      annotations: [],
     };
 
     notesStore.setData([entry, ...current]);
@@ -56,26 +53,70 @@ export function useCreativeNotes() {
     notesStore.setData(current.filter((e) => e.id !== id));
   }, []);
 
+  const addAnnotation = useCallback(
+    async (
+      entryId: string,
+      color: string,
+      startOffset: number,
+      endOffset: number,
+      text: string,
+    ): Promise<RhymeAnnotation | null> => {
+      const response = await analyzePhoneme(text);
+
+      const annotation: RhymeAnnotation = {
+        id: crypto.randomUUID(),
+        color,
+        startOffset,
+        endOffset,
+        text,
+        vowelPattern: response.vowel_pattern,
+      };
+
+      const current = notesStore.getSnapshot();
+      notesStore.setData(
+        current.map((e) =>
+          e.id === entryId
+            ? { ...e, annotations: [...e.annotations, annotation] }
+            : e,
+        ),
+      );
+
+      return annotation;
+    },
+    [],
+  );
+
+  const removeAnnotation = useCallback(
+    (entryId: string, annotationId: string) => {
+      const current = notesStore.getSnapshot();
+      notesStore.setData(
+        current.map((e) =>
+          e.id === entryId
+            ? {
+                ...e,
+                annotations: e.annotations.filter((a) => a.id !== annotationId),
+              }
+            : e,
+        ),
+      );
+    },
+    [],
+  );
+
   const stats: CreativeStats = useMemo(() => {
-    const wordUsageCount: Record<string, number> = {};
-    const rhymeUsageCount: Record<string, number> = {};
+    const rhymePatternCount: Record<string, number> = {};
 
     for (const entry of entries) {
-      for (const word of entry.words) {
-        wordUsageCount[word.surface] = (wordUsageCount[word.surface] ?? 0) + 1;
-        if (word.vowel_pattern) {
-          rhymeUsageCount[word.vowel_pattern] = (rhymeUsageCount[word.vowel_pattern] ?? 0) + 1;
+      for (const annotation of entry.annotations) {
+        if (annotation.vowelPattern) {
+          rhymePatternCount[annotation.vowelPattern] =
+            (rhymePatternCount[annotation.vowelPattern] ?? 0) + 1;
         }
       }
     }
 
-    return { wordUsageCount, rhymeUsageCount };
+    return { rhymePatternCount };
   }, [entries]);
-
-  const getWordUsageCount = useCallback(
-    (word: string) => stats.wordUsageCount[word] ?? 0,
-    [stats],
-  );
 
   const clearAll = useCallback(() => {
     notesStore.clear();
@@ -86,7 +127,8 @@ export function useCreativeNotes() {
     stats,
     addEntry,
     removeEntry,
-    getWordUsageCount,
+    addAnnotation,
+    removeAnnotation,
     clearAll,
   };
 }

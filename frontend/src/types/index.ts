@@ -107,25 +107,19 @@ export interface EnglishSearchResponse {
   total_pages: number;
 }
 
-// Lyrics analysis types
-export interface LyricsWord {
-  surface: string;
+// Rhyme annotation types
+export interface RhymeAnnotation {
+  id: string;
+  color: string;
+  startOffset: number;
+  endOffset: number;
+  text: string;
+  vowelPattern: string;
+}
+
+export interface LyricsPhonemeResponse {
   reading: string;
-  dictionary_form: string;
   vowel_pattern: string;
-  pos: string;
-}
-
-export interface LyricsRhymeGroup {
-  vowel_suffix: string;
-  words: string[];
-}
-
-export interface LyricsAnalyzeResponse {
-  words: LyricsWord[];
-  rhyme_groups: LyricsRhymeGroup[];
-  total_words: number;
-  unique_words: number;
 }
 
 export interface LyricsEntry {
@@ -133,11 +127,9 @@ export interface LyricsEntry {
   title: string;
   content: string;
   createdAt: string;
-  words: LyricsWord[];
-  rhyme_groups: LyricsRhymeGroup[];
+  annotations: RhymeAnnotation[];
 }
 
 export interface CreativeStats {
-  wordUsageCount: Record<string, number>;
-  rhymeUsageCount: Record<string, number>;
+  rhymePatternCount: Record<string, number>;
 }

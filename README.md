@@ -5,8 +5,11 @@
 ## 機能
 
 - 入力された単語から母音・子音パターンを解析
-- 韻を踏む単語を辞書から検索・提案
+- 韻を踏む単語を辞書から検索・提案（日本語・英語対応）
 - パターンベースの柔軟な韻検索（頭韻・脚韻・含む）
+- 韻の類似度スコア表示（母音・子音・モーラの重み付き算出）
+- 音声読み上げ（Web Speech API による発音確認）
+- 創作記録（歌詞の保存・単語使用頻度トラッキング）
 - 検索履歴・お気に入り機能
 
 ## 技術スタック
@@ -124,6 +127,30 @@ bun run check          # typecheck + lint + test
 
 ```
 GET /api/rhyme/analyze?reading=とうきょう
+```
+
+### POST /api/rhyme/search/english
+
+英語の韻検索（日本語の読みから英語の韻ワードを検索）
+
+```json
+{
+  "reading": "とうきょう",
+  "pattern": "*ouo",
+  "sort": "relevance",
+  "limit": 20,
+  "offset": 0
+}
+```
+
+### POST /api/lyrics/analyze
+
+歌詞テキストを形態素解析し、単語と韻パターンを抽出
+
+```json
+{
+  "text": "東京の空は青い"
+}
 ```
 
 ### POST /api/rhyme/update-index

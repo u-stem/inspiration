@@ -112,9 +112,11 @@ docker compose exec backend uv run python scripts/build_index.py
 
 | エンドポイント | メソッド | 説明 |
 |---------------|---------|------|
-| `/rhyme/search` | POST | 韻検索 |
+| `/rhyme/search` | POST | 日本語韻検索 |
+| `/rhyme/search/english` | POST | 英語韻検索 |
 | `/rhyme/analyze` | GET | 単語の音素解析 |
 | `/rhyme/update-index` | POST | インデックス更新（要認証） |
+| `/lyrics/analyze` | POST | 歌詞テキストの形態素解析・韻パターン抽出 |
 
 ## テスト方針
 

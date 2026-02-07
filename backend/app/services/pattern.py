@@ -54,8 +54,8 @@ class PatternMatcher:
     # Pure vowels (can appear without a consonant)
     PURE_VOWELS = frozenset("aiueo")
 
-    # All vowel characters (n is the vowel value for ん, only valid after consonant N)
-    VOWELS = frozenset("aiueon")
+    # Pure vowel characters
+    VOWELS = frozenset("aiueo")
 
     def parse(self, pattern: str) -> ParsedPattern:
         """Parse a pattern string into a ParsedPattern structure.

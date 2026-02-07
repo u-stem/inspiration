@@ -32,10 +32,10 @@ class TestExtractPhonemes:
         assert phonemes[0].consonant == "ky"
 
     def test_nasal(self) -> None:
-        # ン should have vowel "n"
+        # ン is consonant-only (no vowel), like 促音 ッ
         phonemes = extract_phonemes("ニホン")
         vowels = [p.vowel for p in phonemes]
-        assert vowels == ["i", "o", "n"]
+        assert vowels == ["i", "o", None]
 
     def test_all_youon_consonants(self) -> None:
         """Test all supported youon (拗音) consonants"""
@@ -104,15 +104,15 @@ class TestExtractPhonemes:
         # カ
         assert phonemes[0].consonant == "k"
         assert phonemes[0].vowel == "a"
-        # ン
+        # ン (consonant-only, like 促音 ッ)
         assert phonemes[1].consonant == "N"
-        assert phonemes[1].vowel == "n"
+        assert phonemes[1].vowel is None
         # タ
         assert phonemes[2].consonant == "t"
         assert phonemes[2].vowel == "a"
         # ン
         assert phonemes[3].consonant == "N"
-        assert phonemes[3].vowel == "n"
+        assert phonemes[3].vowel is None
 
     def test_chouon(self) -> None:
         """Test chouon (長音) ー handling"""

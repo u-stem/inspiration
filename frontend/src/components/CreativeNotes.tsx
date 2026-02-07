@@ -30,6 +30,7 @@ export function CreativeNotes({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
@@ -37,12 +38,15 @@ export function CreativeNotes({
     if (!title.trim() || !content.trim()) return;
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       const entry = await onAdd(title.trim(), content.trim());
       if (entry) {
         setTitle("");
         setContent("");
       }
+    } catch {
+      setSaveError("保存に失敗しました。もう一度お試しください。");
     } finally {
       setIsSaving(false);
     }
@@ -85,6 +89,9 @@ export function CreativeNotes({
           className="w-full mt-2 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-y"
           disabled={isSaving}
         />
+        {saveError && (
+          <p className="mt-2 text-sm text-red-500">{saveError}</p>
+        )}
         <button
           onClick={handleSave}
           disabled={isSaving || !title.trim() || !content.trim()}

@@ -35,6 +35,7 @@ def analyze_lyrics(request: LyricsAnalyzeRequest) -> LyricsAnalyzeResponse:
                 analysis = analyze_hiragana(reading_hiragana)
                 vowel_pattern = analysis.vowels
             except Exception:
+                logger.debug("Phoneme analysis failed for %s", token.surface)
                 vowel_pattern = ""
 
             words.append(
@@ -53,4 +54,4 @@ def analyze_lyrics(request: LyricsAnalyzeRequest) -> LyricsAnalyzeResponse:
         )
     except Exception as e:
         logger.exception("Lyrics analysis failed")
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {e}") from e
+        raise HTTPException(status_code=500, detail="Analysis failed") from e

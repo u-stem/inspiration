@@ -106,6 +106,17 @@ docker compose exec backend uv run python scripts/build_index.py
 - React Server Components 優先
 - UIテキストは日本語
 
+## バックエンドルーター構成
+
+| ルーター | ファイル | 責務 |
+|----------|----------|------|
+| `rhyme` | `routers/rhyme.py` | 音素解析、インデックス更新 |
+| `japanese` | `routers/japanese.py` | 日本語韻検索 |
+| `english` | `routers/english.py` | 英語韻検索 |
+| `lyrics` | `routers/lyrics.py` | 歌詞解析 |
+
+共通ロジックは `services/search_utils.py`（パターン抽出・読み解析）と `services/similarity.py`（類似度算出）に集約。
+
 ## API設計
 
 ベースURL: `http://localhost:8000/api`

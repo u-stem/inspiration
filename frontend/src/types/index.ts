@@ -71,6 +71,10 @@ export type PresetType = "suffix" | "prefix" | "vowel" | "contains" | "exact" | 
 
 export type SearchLanguage = "ja" | "en";
 
+export type RubyFormat = "katakana" | "half-katakana" | "hiragana";
+
+export type ResultTab = "search" | "favorites" | "notes";
+
 // English rhyme search types
 export interface EnglishRhymeResult {
   word: string;

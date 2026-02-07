@@ -141,4 +141,4 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
 
     except Exception as e:
         logger.exception("Search failed")
-        raise HTTPException(status_code=500, detail=f"Search failed: {e}") from e
+        raise HTTPException(status_code=500, detail="Search failed") from e

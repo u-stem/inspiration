@@ -10,12 +10,11 @@ import type {
   PatternAnalyzeResponse,
   PatternRhymeResult,
   Phoneme,
+  ResultTab,
+  RubyFormat,
   SearchLanguage,
   SortOrder,
 } from "@/types";
-
-type RubyFormat = "katakana" | "half-katakana" | "hiragana";
-type ResultTab = "search" | "favorites";
 
 interface ResultsSectionProps {
   resultTab: ResultTab;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 
 interface UseSpeechOptions {
   lang?: string;
@@ -8,9 +8,14 @@ interface UseSpeechOptions {
   pitch?: number;
 }
 
+const noop = () => () => {};
+const getClientSupport = () => "speechSynthesis" in window;
+const getServerSupport = () => false;
+
 export function useSpeech(options: UseSpeechOptions = {}) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const isSupported = useSyncExternalStore(noop, getClientSupport, getServerSupport);
 
   const speak = useCallback((text: string, overrideLang?: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -34,8 +39,6 @@ export function useSpeech(options: UseSpeechOptions = {}) {
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
   }, []);
-
-  const isSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
   return { speak, stop, isSpeaking, isSupported };
 }

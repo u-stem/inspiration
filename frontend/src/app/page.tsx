@@ -9,10 +9,7 @@ import { useEnglishRhymeSearch } from "@/hooks/useEnglishRhymeSearch";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useHistory } from "@/hooks/useHistory";
 import { useRhymeSearch } from "@/hooks/useRhymeSearch";
-import type { EnglishRhymeResult, PatternRhymeResult, Phoneme, SearchLanguage } from "@/types";
-
-type RubyFormat = "katakana" | "half-katakana" | "hiragana";
-type ResultTab = "search" | "favorites" | "notes";
+import type { EnglishRhymeResult, PatternRhymeResult, Phoneme, ResultTab, RubyFormat, SearchLanguage } from "@/types";
 
 export default function Home() {
   const [currentPattern, setCurrentPattern] = useState("");

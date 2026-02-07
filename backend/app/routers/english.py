@@ -200,4 +200,4 @@ def search_english_rhymes(request: EnglishSearchRequest) -> EnglishSearchRespons
         ) from e
     except Exception as e:
         logger.exception("English search failed")
-        raise HTTPException(status_code=500, detail=f"Search failed: {e}") from e
+        raise HTTPException(status_code=500, detail="Search failed") from e

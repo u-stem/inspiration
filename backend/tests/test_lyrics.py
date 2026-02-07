@@ -106,3 +106,30 @@ class TestLyricsAnalyze:
         )
         data = response.json()
         assert data["rhyme_groups"] == []
+
+
+class TestLyricsPhoneme:
+    def test_phoneme_returns_vowel_pattern(self) -> None:
+        response = client.post(
+            "/api/lyrics/phoneme",
+            json={"text": "東京"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["reading"] != ""
+        assert data["vowel_pattern"] != ""
+
+    def test_phoneme_with_phrase(self) -> None:
+        response = client.post(
+            "/api/lyrics/phoneme",
+            json={"text": "待ってました"},
+        )
+        data = response.json()
+        assert "-" in data["vowel_pattern"]
+
+    def test_phoneme_empty_text(self) -> None:
+        response = client.post(
+            "/api/lyrics/phoneme",
+            json={"text": ""},
+        )
+        assert response.status_code == 422

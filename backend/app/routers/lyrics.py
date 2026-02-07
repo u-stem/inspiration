@@ -7,6 +7,7 @@ from sudachipy import SplitMode
 from app.models.schemas import (
     LyricsAnalyzeRequest,
     LyricsAnalyzeResponse,
+    LyricsPhonemeResponse,
     LyricsRhymeGroup,
     LyricsWord,
 )
@@ -49,6 +50,35 @@ def _find_rhyme_groups(words: list[LyricsWord]) -> list[LyricsRhymeGroup]:
 
     groups.sort(key=lambda g: len(g.words), reverse=True)
     return groups
+
+
+@router.post("/phoneme", response_model=LyricsPhonemeResponse)
+def analyze_phoneme(request: LyricsAnalyzeRequest) -> LyricsPhonemeResponse:
+    """Analyze text and return combined vowel pattern without word filtering."""
+    try:
+        tokenizer = get_tokenizer()
+        tokens = tokenizer.tokenize(request.text, split_mode=SplitMode.B)
+
+        vowel_parts: list[str] = []
+        readings: list[str] = []
+
+        for token in tokens:
+            reading_hiragana = katakana_to_hiragana(token.reading)
+            readings.append(reading_hiragana)
+            try:
+                analysis = analyze_hiragana(reading_hiragana)
+                if analysis.vowels:
+                    vowel_parts.append(analysis.vowels)
+            except Exception:
+                pass
+
+        return LyricsPhonemeResponse(
+            reading="".join(readings),
+            vowel_pattern="-".join(vowel_parts) if vowel_parts else "",
+        )
+    except Exception as e:
+        logger.exception("Phoneme analysis failed")
+        raise HTTPException(status_code=500, detail="Analysis failed") from e
 
 
 @router.post("/analyze", response_model=LyricsAnalyzeResponse)

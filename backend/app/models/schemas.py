@@ -151,6 +151,13 @@ class LyricsRhymeGroup(BaseModel):
     words: list[str] = Field(description="Words sharing this rhyme")
 
 
+class LyricsPhonemeResponse(BaseModel):
+    """テキストの母音パターン解析レスポンス"""
+
+    reading: str = Field(description="Hiragana reading")
+    vowel_pattern: str = Field(description="Combined vowel pattern")
+
+
 class LyricsAnalyzeResponse(BaseModel):
     """歌詞解析レスポンス"""
 

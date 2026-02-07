@@ -55,6 +55,7 @@ class PatternRhymeResult(BaseModel):
     consonant_pattern: str = Field(description="Consonant pattern")
     mora_count: int = Field(description="Number of morae")
     score: int = Field(ge=0, le=100, description="Match score")
+    similarity_score: float = Field(ge=0.0, le=1.0, description="Similarity to input (0.0-1.0)")
 
 
 class PatternSearchResponse(BaseModel):
@@ -95,6 +96,7 @@ class EnglishRhymeResult(BaseModel):
     consonant_pattern: str = Field(description="Consonant pattern")
     syllable_count: int = Field(description="Number of syllables")
     score: int = Field(ge=0, le=100, description="Match score")
+    similarity_score: float = Field(ge=0.0, le=1.0, description="Similarity to input (0.0-1.0)")
 
 
 class EnglishSearchRequest(BaseModel):
@@ -121,3 +123,29 @@ class EnglishSearchResponse(BaseModel):
     page: int = Field(description="Current page number (1-based)")
     per_page: int = Field(description="Results per page")
     total_pages: int = Field(description="Total number of pages")
+
+
+# ========== Lyrics Analysis Schemas ==========
+
+
+class LyricsAnalyzeRequest(BaseModel):
+    """歌詞解析リクエスト"""
+
+    text: str = Field(..., min_length=1, max_length=10000, description="Lyrics text to analyze")
+
+
+class LyricsWord(BaseModel):
+    """歌詞から抽出した単語"""
+
+    surface: str = Field(description="Surface form")
+    reading: str = Field(description="Reading in hiragana")
+    vowel_pattern: str = Field(description="Vowel pattern")
+    pos: str = Field(description="Part of speech")
+
+
+class LyricsAnalyzeResponse(BaseModel):
+    """歌詞解析レスポンス"""
+
+    words: list[LyricsWord] = Field(description="Extracted words with readings")
+    total_words: int = Field(description="Total word count")
+    unique_words: int = Field(description="Unique word count")

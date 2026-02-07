@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import english, japanese, rhyme
+from app.routers import english, japanese, lyrics, rhyme
 
 app = FastAPI(
     title="Rhyme API",
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(rhyme.router, prefix=settings.api_prefix)
 app.include_router(japanese.router, prefix=settings.api_prefix)
 app.include_router(english.router, prefix=settings.api_prefix)
+app.include_router(lyrics.router, prefix=settings.api_prefix)
 
 
 @app.get("/health")

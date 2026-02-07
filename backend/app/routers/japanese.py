@@ -19,6 +19,7 @@ from app.services.phoneme import (
 )
 from app.services.rhyme import get_rhyme_index
 from app.services.search_utils import analyze_reading, extract_patterns, word_priority
+from app.services.similarity import calculate_similarity
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,14 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
                 for p in phonemes_raw
                 if p.vowel is not None or p.consonant == "Q"
             ]
+            similarity = calculate_similarity(
+                input_vowels=input_analysis.vowel_pattern,
+                input_consonants=input_analysis.consonant_pattern,
+                result_vowels=entry.vowels,
+                result_consonants=entry.consonants,
+                input_mora=len(input_analysis.phonemes),
+                result_mora=entry.mora_count,
+            )
             results.append(
                 PatternRhymeResult(
                     word=entry.word,
@@ -113,6 +122,7 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
                     consonant_pattern=entry.consonants,
                     mora_count=entry.mora_count,
                     score=score,
+                    similarity_score=similarity,
                 )
             )
 

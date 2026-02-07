@@ -36,6 +36,7 @@ export interface PatternRhymeResult {
   consonant_pattern: string;
   mora_count: number;
   score: number;
+  similarity_score: number;
 }
 
 export interface PatternSearchResponse {
@@ -79,6 +80,7 @@ export interface EnglishRhymeResult {
   consonant_pattern: string;
   syllable_count: number;
   score: number;
+  similarity_score: number;
 }
 
 export interface EnglishSearchRequest {
@@ -99,4 +101,31 @@ export interface EnglishSearchResponse {
   page: number;
   per_page: number;
   total_pages: number;
+}
+
+// Lyrics analysis types
+export interface LyricsWord {
+  surface: string;
+  reading: string;
+  vowel_pattern: string;
+  pos: string;
+}
+
+export interface LyricsAnalyzeResponse {
+  words: LyricsWord[];
+  total_words: number;
+  unique_words: number;
+}
+
+export interface LyricsEntry {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  words: LyricsWord[];
+}
+
+export interface CreativeStats {
+  wordUsageCount: Record<string, number>;
+  rhymeUsageCount: Record<string, number>;
 }

@@ -14,6 +14,7 @@ from app.services.english_rhyme import get_english_rhyme_index
 from app.services.pattern import PatternMatcher
 from app.services.phoneme import is_hiragana
 from app.services.search_utils import analyze_reading, extract_patterns
+from app.services.similarity import calculate_similarity
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +159,14 @@ def search_english_rhymes(request: EnglishSearchRequest) -> EnglishSearchRespons
 
         results = []
         for score, _, entry in page_matches:
+            similarity = calculate_similarity(
+                input_vowels=input_analysis.vowel_pattern,
+                input_consonants=input_analysis.consonant_pattern,
+                result_vowels=entry.vowels,
+                result_consonants=entry.consonants,
+                input_mora=len(input_analysis.phonemes),
+                result_mora=entry.syllable_count,
+            )
             results.append(
                 EnglishRhymeResult(
                     word=entry.word,
@@ -167,6 +176,7 @@ def search_english_rhymes(request: EnglishSearchRequest) -> EnglishSearchRespons
                     consonant_pattern=entry.consonants,
                     syllable_count=entry.syllable_count,
                     score=score,
+                    similarity_score=similarity,
                 )
             )
 

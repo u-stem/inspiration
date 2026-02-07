@@ -2,6 +2,7 @@ import type {
   EnglishSearchRequest,
   EnglishSearchResponse,
   IndexUpdateResponse,
+  LyricsAnalyzeResponse,
   PatternAnalyzeResponse,
   PatternSearchRequest,
   PatternSearchResponse,
@@ -75,6 +76,15 @@ export async function searchEnglishRhymes(
   return fetchApi<EnglishSearchResponse>("/rhyme/search/english", {
     method: "POST",
     body: JSON.stringify(request),
+  });
+}
+
+export async function analyzeLyrics(
+  text: string,
+): Promise<LyricsAnalyzeResponse> {
+  return fetchApi<LyricsAnalyzeResponse>("/lyrics/analyze", {
+    method: "POST",
+    body: JSON.stringify({ text }),
   });
 }
 

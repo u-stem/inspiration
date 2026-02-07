@@ -43,3 +43,45 @@ class TestLyricsAnalyze:
         data = response.json()
         surfaces = [w["surface"] for w in data["words"]]
         assert "の" not in surfaces
+
+    def test_split_mode_b_separates_compounds(self) -> None:
+        """SplitMode.B should separate '東京の空' into '東京' and '空'."""
+        response = client.post(
+            "/api/lyrics/analyze",
+            json={"text": "東京の空は青い"},
+        )
+        data = response.json()
+        surfaces = [w["surface"] for w in data["words"]]
+        assert "東京" in surfaces
+        assert "空" in surfaces
+        # Should NOT be merged into one token
+        assert "東京の空" not in surfaces
+
+    def test_dictionary_form_included(self) -> None:
+        """Words should include dictionary/base form."""
+        response = client.post(
+            "/api/lyrics/analyze",
+            json={"text": "夢を追いかけて走る"},
+        )
+        data = response.json()
+        oikake = next((w for w in data["words"] if w["surface"] == "追いかけ"), None)
+        assert oikake is not None
+        assert oikake["dictionary_form"] == "追いかける"
+
+    def test_rhyme_groups_detected(self) -> None:
+        """Words with matching vowel suffixes should be grouped."""
+        response = client.post(
+            "/api/lyrics/analyze",
+            json={"text": "光と夢 走る星 僕の空"},
+        )
+        data = response.json()
+        assert "rhyme_groups" in data
+
+    def test_rhyme_groups_require_two_words(self) -> None:
+        """A rhyme group needs at least 2 words."""
+        response = client.post(
+            "/api/lyrics/analyze",
+            json={"text": "光"},
+        )
+        data = response.json()
+        assert data["rhyme_groups"] == []

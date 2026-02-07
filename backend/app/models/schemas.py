@@ -139,13 +139,24 @@ class LyricsWord(BaseModel):
 
     surface: str = Field(description="Surface form")
     reading: str = Field(description="Reading in hiragana")
+    dictionary_form: str = Field(default="", description="Dictionary/base form")
     vowel_pattern: str = Field(description="Vowel pattern")
     pos: str = Field(description="Part of speech")
+
+
+class LyricsRhymeGroup(BaseModel):
+    """歌詞内で韻を踏んでいる単語グループ"""
+
+    vowel_suffix: str = Field(description="Shared vowel suffix pattern")
+    words: list[str] = Field(description="Words sharing this rhyme")
 
 
 class LyricsAnalyzeResponse(BaseModel):
     """歌詞解析レスポンス"""
 
     words: list[LyricsWord] = Field(description="Extracted words with readings")
+    rhyme_groups: list[LyricsRhymeGroup] = Field(
+        default_factory=list, description="Groups of rhyming words"
+    )
     total_words: int = Field(description="Total word count")
     unique_words: int = Field(description="Unique word count")

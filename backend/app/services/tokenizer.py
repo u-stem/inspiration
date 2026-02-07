@@ -10,6 +10,7 @@ class Token:
     surface: str
     reading: str
     pos: str
+    dictionary_form: str = ""
 
 
 class Tokenizer:
@@ -23,15 +24,22 @@ class Tokenizer:
         self._tokenizer = self._dict.create()
         self._split_mode = split_mode
 
-    def tokenize(self, text: str) -> list[Token]:
-        morphemes = self._tokenizer.tokenize(text, self._split_mode)
+    def tokenize(self, text: str, split_mode: SplitMode | None = None) -> list[Token]:
+        mode = split_mode if split_mode is not None else self._split_mode
+        morphemes = self._tokenizer.tokenize(text, mode)
         tokens: list[Token] = []
 
         for morpheme in morphemes:
             surface = morpheme.surface()
             reading = morpheme.reading_form()
             pos = morpheme.part_of_speech()[0]
-            tokens.append(Token(surface=surface, reading=reading, pos=pos))
+            dictionary_form = morpheme.dictionary_form()
+            tokens.append(Token(
+                surface=surface,
+                reading=reading,
+                pos=pos,
+                dictionary_form=dictionary_form,
+            ))
 
         return tokens
 

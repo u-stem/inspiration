@@ -210,6 +210,26 @@ export function CreativeNotes({
                     <pre className="mt-2 text-xs text-slate-600 whitespace-pre-wrap font-sans">
                       {entry.content}
                     </pre>
+                    {entry.rhyme_groups && entry.rhyme_groups.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs text-slate-400 mb-1.5">韻グループ</p>
+                        <div className="space-y-1">
+                          {entry.rhyme_groups.map((group) => (
+                            <div
+                              key={group.vowel_suffix}
+                              className="flex items-center gap-2 text-xs"
+                            >
+                              <span className="font-mono text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
+                                {group.vowel_suffix}
+                              </span>
+                              <span className="text-slate-600">
+                                {group.words.join(" / ")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {entry.words.length > 0 && (
                       <div className="mt-3">
                         <p className="text-xs text-slate-400 mb-1.5">抽出語</p>
@@ -220,6 +240,11 @@ export function CreativeNotes({
                               className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-slate-50 text-slate-600 rounded border border-slate-100"
                             >
                               {word.surface}
+                              {word.dictionary_form && word.dictionary_form !== word.surface && (
+                                <span className="text-[10px] text-slate-400">
+                                  ({word.dictionary_form})
+                                </span>
+                              )}
                               {word.vowel_pattern && (
                                 <span className="text-[10px] font-mono text-emerald-500">
                                   {word.vowel_pattern}

@@ -44,6 +44,7 @@ export function useCreativeNotes() {
       content,
       createdAt: new Date().toISOString(),
       words: response.words,
+      rhyme_groups: response.rhyme_groups,
     };
 
     notesStore.setData([entry, ...current]);

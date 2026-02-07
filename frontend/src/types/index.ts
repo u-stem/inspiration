@@ -111,12 +111,19 @@ export interface EnglishSearchResponse {
 export interface LyricsWord {
   surface: string;
   reading: string;
+  dictionary_form: string;
   vowel_pattern: string;
   pos: string;
 }
 
+export interface LyricsRhymeGroup {
+  vowel_suffix: string;
+  words: string[];
+}
+
 export interface LyricsAnalyzeResponse {
   words: LyricsWord[];
+  rhyme_groups: LyricsRhymeGroup[];
   total_words: number;
   unique_words: number;
 }
@@ -127,6 +134,7 @@ export interface LyricsEntry {
   content: string;
   createdAt: string;
   words: LyricsWord[];
+  rhyme_groups: LyricsRhymeGroup[];
 }
 
 export interface CreativeStats {

@@ -44,6 +44,27 @@ class TestLyricsAnalyze:
         surfaces = [w["surface"] for w in data["words"]]
         assert "の" not in surfaces
 
+    def test_filters_single_vowel_words(self) -> None:
+        """Words with only 1 vowel have no rhyme value and should be filtered."""
+        response = client.post(
+            "/api/lyrics/analyze",
+            json={"text": "待ってましたと言わんばかりの"},
+        )
+        data = response.json()
+        surfaces = [w["surface"] for w in data["words"]]
+        # 待っ(まっ) has only 1 vowel 'a' - should be excluded
+        assert "待っ" not in surfaces
+
+    def test_filters_grammatical_pos(self) -> None:
+        """接尾辞, 連体詞, 接続詞 should be filtered."""
+        response = client.post(
+            "/api/lyrics/analyze",
+            json={"text": "この世界はまた素晴らしい"},
+        )
+        data = response.json()
+        surfaces = [w["surface"] for w in data["words"]]
+        assert "この" not in surfaces  # 連体詞
+
     def test_split_mode_b_separates_compounds(self) -> None:
         """SplitMode.B should separate '東京の空' into '東京' and '空'."""
         response = client.post(

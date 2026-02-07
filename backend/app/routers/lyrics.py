@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/lyrics", tags=["lyrics"])
 
-EXCLUDED_POS = {"助詞", "助動詞", "記号", "空白", "補助記号"}
+EXCLUDED_POS = {"助詞", "助動詞", "記号", "空白", "補助記号", "接尾辞", "連体詞", "接続詞"}
 
 # Minimum vowel suffix length to consider as a rhyme
 _MIN_RHYME_SUFFIX = 2
@@ -81,6 +81,11 @@ def analyze_lyrics(request: LyricsAnalyzeRequest) -> LyricsAnalyzeResponse:
             except Exception:
                 logger.debug("Phoneme analysis failed for %s", token.surface)
                 vowel_pattern = ""
+
+            # 1-vowel words have no rhyme value
+            vowel_count = len(vowel_pattern.split("-")) if vowel_pattern else 0
+            if vowel_count < 2:
+                continue
 
             words.append(
                 LyricsWord(

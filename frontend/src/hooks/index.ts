@@ -1,3 +1,4 @@
+export { useCreativeNotes } from "./useCreativeNotes";
 export { useEnglishRhymeSearch } from "./useEnglishRhymeSearch";
 export { useFavorites } from "./useFavorites";
 export { useHistory } from "./useHistory";

@@ -1,3 +1,4 @@
+export { CreativeNotes } from "./CreativeNotes";
 export { EnglishResultCard } from "./EnglishResultCard";
 export { FavoritesPanel } from "./FavoritesPanel";
 export { HistoryPanel } from "./HistoryPanel";

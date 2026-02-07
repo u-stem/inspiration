@@ -1,9 +1,10 @@
 "use client";
 
-import { Heart } from "lucide-react";
+import { FileText, Heart } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
-import { ResultsSection, SearchSection } from "@/components";
+import { CreativeNotes, ResultsSection, SearchSection } from "@/components";
+import { useCreativeNotes } from "@/hooks/useCreativeNotes";
 import { useEnglishRhymeSearch } from "@/hooks/useEnglishRhymeSearch";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useHistory } from "@/hooks/useHistory";
@@ -11,7 +12,7 @@ import { useRhymeSearch } from "@/hooks/useRhymeSearch";
 import type { EnglishRhymeResult, PatternRhymeResult, Phoneme, SearchLanguage } from "@/types";
 
 type RubyFormat = "katakana" | "half-katakana" | "hiragana";
-type ResultTab = "search" | "favorites";
+type ResultTab = "search" | "favorites" | "notes";
 
 export default function Home() {
   const [currentPattern, setCurrentPattern] = useState("");
@@ -65,6 +66,15 @@ export default function Home() {
     exportFavorites,
     clearFavorites,
   } = useFavorites();
+
+  const {
+    entries: noteEntries,
+    stats: noteStats,
+    addEntry: addNote,
+    removeEntry: removeNote,
+    getWordUsageCount,
+    clearAll: clearNotes,
+  } = useCreativeNotes();
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -196,22 +206,40 @@ export default function Home() {
       <header className="bg-white border-b border-slate-200">
         <div className="px-6 py-3 flex items-center justify-between">
           <h1 className="text-lg font-bold text-slate-800">韻スピレーション</h1>
-          <button
-            onClick={() => setResultTab(resultTab === "favorites" ? "search" : "favorites")}
-            className={`relative p-2 rounded-full transition-colors ${
-              resultTab === "favorites"
-                ? "bg-red-50 text-red-500"
-                : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-            }`}
-            title="お気に入り"
-          >
-            <Heart className={`w-5 h-5 ${resultTab === "favorites" ? "fill-current" : ""}`} />
-            {favorites.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {favorites.length > 9 ? "9+" : favorites.length}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setResultTab(resultTab === "notes" ? "search" : "notes")}
+              className={`relative p-2 rounded-full transition-colors ${
+                resultTab === "notes"
+                  ? "bg-blue-50 text-blue-500"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              }`}
+              title="創作ノート"
+            >
+              <FileText className="w-5 h-5" />
+              {noteEntries.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {noteEntries.length > 9 ? "9+" : noteEntries.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setResultTab(resultTab === "favorites" ? "search" : "favorites")}
+              className={`relative p-2 rounded-full transition-colors ${
+                resultTab === "favorites"
+                  ? "bg-red-50 text-red-500"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              }`}
+              title="お気に入り"
+            >
+              <Heart className={`w-5 h-5 ${resultTab === "favorites" ? "fill-current" : ""}`} />
+              {favorites.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {favorites.length > 9 ? "9+" : favorites.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -237,46 +265,59 @@ export default function Home() {
           onHistoryClear={clearHistory}
         />
 
-        <ResultsSection
-          resultTab={resultTab}
-          searchLanguage={searchLanguage}
-          phonemes={phonemes}
-          input={input}
-          results={results}
-          total={total}
-          page={page}
-          totalPages={totalPages}
-          isLoading={isLoading}
-          error={error}
-          rubyFormat={rubyFormat}
-          sortOrder={searchOptions.sort}
-          moraMax={moraMax}
-          maxMoraInResults={maxMoraInResults}
-          englishInput={englishInput}
-          englishResults={englishResults}
-          englishTotal={englishTotal}
-          englishPage={englishPage}
-          englishTotalPages={englishTotalPages}
-          englishIsLoading={englishIsLoading}
-          englishError={englishError}
-          englishSortOrder={englishSearchOptions.sort}
-          englishMaxMoraInResults={englishMaxMoraInResults}
-          favorites={favorites}
-          isFavorite={isFavorite}
-          onToggleFavorite={handleToggleFavorite}
-          onEnglishToggleFavorite={handleEnglishToggleFavorite}
-          onPageChange={goToPage}
-          onEnglishPageChange={goToEnglishPage}
-          onRubyFormatChange={setRubyFormat}
-          onSortChange={(sort) => updateOptions({ sort })}
-          onEnglishSortChange={(sort) => updateEnglishOptions({ sort })}
-          onMoraMaxChange={handleMoraMaxChange}
-          onWordClick={handleWordClick}
-          onEnglishWordClick={handleEnglishWordClick}
-          onRemoveFavorite={removeFavorite}
-          onExportFavorites={exportFavorites}
-          onClearFavorites={clearFavorites}
-        />
+        {resultTab === "notes" ? (
+          <div className="mt-8 pt-6 border-t border-slate-200 min-h-[300px]">
+            <CreativeNotes
+              entries={noteEntries}
+              stats={noteStats}
+              onAdd={addNote}
+              onRemove={removeNote}
+              onClear={clearNotes}
+            />
+          </div>
+        ) : (
+          <ResultsSection
+            resultTab={resultTab}
+            searchLanguage={searchLanguage}
+            phonemes={phonemes}
+            input={input}
+            results={results}
+            total={total}
+            page={page}
+            totalPages={totalPages}
+            isLoading={isLoading}
+            error={error}
+            rubyFormat={rubyFormat}
+            sortOrder={searchOptions.sort}
+            moraMax={moraMax}
+            maxMoraInResults={maxMoraInResults}
+            englishInput={englishInput}
+            englishResults={englishResults}
+            englishTotal={englishTotal}
+            englishPage={englishPage}
+            englishTotalPages={englishTotalPages}
+            englishIsLoading={englishIsLoading}
+            englishError={englishError}
+            englishSortOrder={englishSearchOptions.sort}
+            englishMaxMoraInResults={englishMaxMoraInResults}
+            favorites={favorites}
+            isFavorite={isFavorite}
+            getWordUsageCount={getWordUsageCount}
+            onToggleFavorite={handleToggleFavorite}
+            onEnglishToggleFavorite={handleEnglishToggleFavorite}
+            onPageChange={goToPage}
+            onEnglishPageChange={goToEnglishPage}
+            onRubyFormatChange={setRubyFormat}
+            onSortChange={(sort) => updateOptions({ sort })}
+            onEnglishSortChange={(sort) => updateEnglishOptions({ sort })}
+            onMoraMaxChange={handleMoraMaxChange}
+            onWordClick={handleWordClick}
+            onEnglishWordClick={handleEnglishWordClick}
+            onRemoveFavorite={removeFavorite}
+            onExportFavorites={exportFavorites}
+            onClearFavorites={clearFavorites}
+          />
+        )}
       </main>
     </div>
   );

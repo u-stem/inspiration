@@ -9,6 +9,7 @@ import type { EnglishRhymeResult } from "@/types";
 interface EnglishResultCardProps {
   result: EnglishRhymeResult;
   isFavorite: boolean;
+  usageCount?: number;
   onToggleFavorite: () => void;
   onWordClick: (word: string) => void;
 }
@@ -16,6 +17,7 @@ interface EnglishResultCardProps {
 export function EnglishResultCard({
   result,
   isFavorite,
+  usageCount,
   onToggleFavorite,
   onWordClick,
 }: EnglishResultCardProps) {
@@ -79,6 +81,11 @@ export function EnglishResultCard({
         <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded">
           {result.syllable_count}音節
         </span>
+        {usageCount !== undefined && usageCount > 0 && (
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] bg-amber-50 text-amber-600 rounded">
+            {usageCount}回使用
+          </span>
+        )}
       </div>
 
       {/* Similarity Score */}

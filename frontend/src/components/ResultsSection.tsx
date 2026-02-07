@@ -46,6 +46,8 @@ interface ResultsSectionProps {
   // Favorites
   favorites: FavoriteItem[];
   isFavorite: (word: string) => boolean;
+  // Creative notes
+  getWordUsageCount?: (word: string) => number;
   // Callbacks
   onToggleFavorite: (result: PatternRhymeResult) => void;
   onEnglishToggleFavorite: (result: EnglishRhymeResult) => void;
@@ -88,6 +90,7 @@ export function ResultsSection({
   englishMaxMoraInResults,
   favorites,
   isFavorite,
+  getWordUsageCount,
   onToggleFavorite,
   onEnglishToggleFavorite,
   onPageChange,
@@ -125,6 +128,7 @@ export function ResultsSection({
               sortOrder={sortOrder}
               moraMax={moraMax}
               maxMoraInResults={maxMoraInResults}
+              getWordUsageCount={getWordUsageCount}
               isFavorite={isFavorite}
               onToggleFavorite={onToggleFavorite}
               onPageChange={onPageChange}
@@ -146,6 +150,7 @@ export function ResultsSection({
               sortOrder={englishSortOrder}
               moraMax={moraMax}
               maxMoraInResults={englishMaxMoraInResults}
+              getWordUsageCount={getWordUsageCount}
               isFavorite={isFavorite}
               onToggleFavorite={onEnglishToggleFavorite}
               onPageChange={onEnglishPageChange}

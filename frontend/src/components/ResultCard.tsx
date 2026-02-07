@@ -51,6 +51,7 @@ interface ResultCardProps {
   result: PatternRhymeResult;
   rubyFormat: RubyFormat;
   isFavorite: boolean;
+  usageCount?: number;
   onToggleFavorite: () => void;
   onWordClick: (word: string, reading: string) => void;
 }
@@ -59,6 +60,7 @@ export function ResultCard({
   result,
   rubyFormat,
   isFavorite,
+  usageCount,
   onToggleFavorite,
   onWordClick,
 }: ResultCardProps) {
@@ -122,6 +124,11 @@ export function ResultCard({
         <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded">
           {result.mora_count}音
         </span>
+        {usageCount !== undefined && usageCount > 0 && (
+          <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] bg-amber-50 text-amber-600 rounded">
+            {usageCount}回使用
+          </span>
+        )}
       </div>
 
       {/* Similarity Score */}

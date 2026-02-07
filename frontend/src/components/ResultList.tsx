@@ -50,6 +50,7 @@ interface JapaneseResultListProps {
   sortOrder: SortOrder;
   moraMax?: number;
   maxMoraInResults?: number;
+  getWordUsageCount?: (word: string) => number;
   isFavorite: (word: string) => boolean;
   onToggleFavorite: (result: PatternRhymeResult) => void;
   onPageChange: (page: number) => void;
@@ -72,6 +73,7 @@ interface EnglishResultListProps {
   sortOrder: SortOrder;
   moraMax?: number;
   maxMoraInResults?: number;
+  getWordUsageCount?: (word: string) => number;
   isFavorite: (word: string) => boolean;
   onToggleFavorite: (result: EnglishRhymeResult) => void;
   onPageChange: (page: number) => void;
@@ -262,6 +264,7 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
                   result={result}
                   rubyFormat={props.rubyFormat}
                   isFavorite={isFavorite(result.word)}
+                  usageCount={"getWordUsageCount" in props && props.getWordUsageCount ? props.getWordUsageCount(result.word) : undefined}
                   onToggleFavorite={() =>
                     (props.onToggleFavorite as (r: PatternRhymeResult) => void)(result)
                   }
@@ -273,6 +276,7 @@ export function ResultList(props: ResultListProps | LegacyResultListProps) {
                   key={result.word}
                   result={result}
                   isFavorite={isFavorite(result.word)}
+                  usageCount={"getWordUsageCount" in props && props.getWordUsageCount ? props.getWordUsageCount(result.word) : undefined}
                   onToggleFavorite={() =>
                     (props as EnglishResultListProps).onToggleFavorite(result)
                   }

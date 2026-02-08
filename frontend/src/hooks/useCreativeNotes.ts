@@ -103,6 +103,25 @@ export function useCreativeNotes() {
     [],
   );
 
+  const updateAnnotation = useCallback(
+    (entryId: string, annotationId: string, color: string) => {
+      const current = notesStore.getSnapshot();
+      notesStore.setData(
+        current.map((e) =>
+          e.id === entryId
+            ? {
+                ...e,
+                annotations: e.annotations.map((a) =>
+                  a.id === annotationId ? { ...a, color } : a,
+                ),
+              }
+            : e,
+        ),
+      );
+    },
+    [],
+  );
+
   const stats: CreativeStats = useMemo(() => {
     const rhymePatternCount: Record<string, number> = {};
 
@@ -129,6 +148,7 @@ export function useCreativeNotes() {
     removeEntry,
     addAnnotation,
     removeAnnotation,
+    updateAnnotation,
     clearAll,
   };
 }

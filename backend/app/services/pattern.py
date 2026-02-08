@@ -15,7 +15,7 @@ Examples:
 import logging
 from dataclasses import dataclass
 
-from app.services.phoneme import Phoneme, extract_phonemes_detailed, hiragana_to_katakana
+from app.services.phoneme import Phoneme, extract_phonemes, hiragana_to_katakana
 from app.services.rhyme import IndexEntry
 
 logger = logging.getLogger(__name__)
@@ -160,7 +160,7 @@ class PatternMatcher:
             return False, 0
 
         # Extract candidate's phonemes
-        candidate_phonemes = extract_phonemes_detailed(candidate.reading)
+        candidate_phonemes = extract_phonemes(candidate.reading)
         if not candidate_phonemes:
             return False, 0
 
@@ -261,7 +261,7 @@ def build_pattern_from_reading(
         Pattern string
     """
     katakana = hiragana_to_katakana(reading)
-    phonemes = extract_phonemes_detailed(katakana)
+    phonemes = extract_phonemes(katakana)
 
     if fix_consonants is None:
         fix_consonants = [True] * len(phonemes)

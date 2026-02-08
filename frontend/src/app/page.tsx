@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Heart } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CreativeNotes, ResultsSection, SearchSection } from "@/components";
 import { useCreativeNotes } from "@/hooks/useCreativeNotes";
@@ -10,6 +10,8 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useHistory } from "@/hooks/useHistory";
 import { useRhymeSearch } from "@/hooks/useRhymeSearch";
 import type { EnglishRhymeResult, PatternRhymeResult, Phoneme, ResultTab, RubyFormat, SearchLanguage } from "@/types";
+
+const DEBOUNCE_DELAY_MS = 300;
 
 export default function Home() {
   const [currentPattern, setCurrentPattern] = useState("");
@@ -71,10 +73,19 @@ export default function Home() {
     removeEntry: removeNote,
     addAnnotation,
     removeAnnotation,
+    updateAnnotation,
     clearAll: clearNotes,
   } = useCreativeNotes();
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleReadingChange = useCallback(
     (reading: string) => {
@@ -92,7 +103,7 @@ export default function Home() {
         if (result) {
           setPhonemes(result);
         }
-      }, 300);
+      }, DEBOUNCE_DELAY_MS);
     },
     [analyze]
   );
@@ -213,6 +224,7 @@ export default function Home() {
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               }`}
               title="創作ノート"
+              aria-label="創作ノート"
             >
               <FileText className="w-5 h-5" />
               {noteEntries.length > 0 && (
@@ -229,6 +241,7 @@ export default function Home() {
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               }`}
               title="お気に入り"
+              aria-label="お気に入り"
             >
               <Heart className={`w-5 h-5 ${resultTab === "favorites" ? "fill-current" : ""}`} />
               {favorites.length > 0 && (
@@ -272,6 +285,7 @@ export default function Home() {
               onRemove={removeNote}
               onAddAnnotation={addAnnotation}
               onRemoveAnnotation={removeAnnotation}
+              onUpdateAnnotation={updateAnnotation}
               onClear={clearNotes}
             />
           </div>

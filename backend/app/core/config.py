@@ -7,9 +7,9 @@ def _parse_cors_origins() -> list[str]:
     origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000")
     origins = [o.strip() for o in origins_str.split(",") if o.strip()]
     # Reject wildcard with credentials (security issue)
-    if "*" in origins and len(origins) == 1:
+    if "*" in origins:
         raise ValueError(
-            "CORS_ORIGINS cannot be '*' when allow_credentials=True. "
+            "CORS_ORIGINS cannot contain '*' when allow_credentials=True. "
             "Specify explicit origins instead."
         )
     return origins
@@ -21,6 +21,7 @@ class Settings:
     english_index_path: str = os.getenv("ENGLISH_INDEX_PATH", "data/english_rhyme_index.db")
     api_prefix: str = "/api"
     cors_origins: list[str] = field(default_factory=_parse_cors_origins)
+    max_pattern_search_candidates: int = 100_000
 
 
 settings = Settings()

@@ -3,7 +3,7 @@
 from app.models.schemas import PatternAnalyzeResponse, Phoneme
 from app.services.phoneme import (
     analyze_hiragana,
-    extract_phonemes_detailed,
+    extract_phonemes,
     hiragana_to_katakana,
     katakana_to_hiragana,
 )
@@ -91,7 +91,7 @@ def extract_patterns(parsed) -> tuple[str | None, str | None, bool, bool]:
 def analyze_reading(reading: str) -> PatternAnalyzeResponse:
     """Analyze hiragana reading and return phoneme info."""
     katakana = hiragana_to_katakana(reading)
-    phonemes_raw = extract_phonemes_detailed(katakana)
+    phonemes_raw = extract_phonemes(katakana)
     analysis = analyze_hiragana(reading)
 
     phonemes = [

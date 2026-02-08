@@ -359,6 +359,3 @@ def analyze_hiragana(reading: str) -> PhonemeAnalysis:
     return analyze(katakana)
 
 
-# extract_phonemes_detailed は extract_phonemes と同一のため削除
-# 後方互換性のためエイリアスを提供
-extract_phonemes_detailed = extract_phonemes

@@ -6,13 +6,14 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.core.config import settings
 from app.models.schemas import IndexUpdateResponse, PatternAnalyzeResponse
+from app.services.english_rhyme import get_english_rhyme_index
 from app.services.phoneme import is_hiragana
 from app.services.rhyme import get_rhyme_index
 from app.services.search_utils import analyze_reading as _analyze_reading
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/rhyme", tags=["rhyme"])
+router = APIRouter(prefix="/rhyme", tags=["rhyme-core"])
 
 
 @router.get("/analyze", response_model=PatternAnalyzeResponse)
@@ -62,6 +63,7 @@ def update_index_endpoint(
 
         # インデックスキャッシュをクリア
         get_rhyme_index.cache_clear()
+        get_english_rhyme_index.cache_clear()
 
         if result["added"] == 0:
             message = "新しい単語はありませんでした"

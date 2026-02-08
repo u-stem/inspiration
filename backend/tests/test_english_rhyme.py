@@ -1,11 +1,127 @@
 """Tests for English rhyme index."""
 
+from dataclasses import dataclass
+
 import pytest
 
+from app.routers.english import _calculate_english_match_score
 from app.services.english_rhyme import EnglishRhymeIndex, get_english_rhyme_index
 
 # Path to the English rhyme index
 INDEX_PATH = "data/english_rhyme_index.db"
+
+
+@dataclass
+class FakeEntry:
+    vowels: str
+    consonants: str = ""
+
+
+@dataclass
+class FakeParsed:
+    phoneme_patterns: list
+    prefix_wildcard: bool = False
+    suffix_wildcard: bool = False
+
+
+@dataclass
+class FakePhoneme:
+    vowel: str | None
+    consonant: str | None = None
+
+
+class TestCalculateEnglishMatchScore:
+    """Unit tests for _calculate_english_match_score."""
+
+    def test_suffix_match_returns_positive_score(self) -> None:
+        entry = FakeEntry(vowels="a-i-u")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="i"), FakePhoneme(vowel="u")],
+            prefix_wildcard=True,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score > 0
+
+    def test_suffix_mismatch_returns_zero(self) -> None:
+        entry = FakeEntry(vowels="a-i-u")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="o"), FakePhoneme(vowel="e")],
+            prefix_wildcard=True,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score == 0
+
+    def test_prefix_match_returns_positive_score(self) -> None:
+        entry = FakeEntry(vowels="a-i-u")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="a"), FakePhoneme(vowel="i")],
+            prefix_wildcard=False,
+            suffix_wildcard=True,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score > 0
+
+    def test_exact_match_returns_100(self) -> None:
+        entry = FakeEntry(vowels="a-i")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="a"), FakePhoneme(vowel="i")],
+            prefix_wildcard=False,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score == 100
+
+    def test_exact_match_wrong_length_returns_zero(self) -> None:
+        entry = FakeEntry(vowels="a-i-u")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="a"), FakePhoneme(vowel="i")],
+            prefix_wildcard=False,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score == 0
+
+    def test_contains_match_returns_positive_score(self) -> None:
+        entry = FakeEntry(vowels="a-i-u-e")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="i"), FakePhoneme(vowel="u")],
+            prefix_wildcard=True,
+            suffix_wildcard=True,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score > 0
+
+    def test_no_pattern_vowels_returns_zero(self) -> None:
+        entry = FakeEntry(vowels="a-i")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel=None, consonant="k")],
+            prefix_wildcard=True,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score == 0
+
+    def test_entry_too_short_for_pattern_returns_zero(self) -> None:
+        entry = FakeEntry(vowels="a")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel="a"), FakePhoneme(vowel="i")],
+            prefix_wildcard=True,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score == 0
+
+    def test_score_capped_at_100(self) -> None:
+        entry = FakeEntry(vowels="a-i-u-e-o-a-i-u-e-o")
+        parsed = FakeParsed(
+            phoneme_patterns=[FakePhoneme(vowel=v) for v in "aiueoaiueo"],
+            prefix_wildcard=False,
+            suffix_wildcard=False,
+        )
+        score = _calculate_english_match_score(entry, parsed)
+        assert score <= 100
 
 
 @pytest.fixture

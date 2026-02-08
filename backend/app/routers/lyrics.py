@@ -69,8 +69,8 @@ def analyze_phoneme(request: LyricsAnalyzeRequest) -> LyricsPhonemeResponse:
                 analysis = analyze_hiragana(reading_hiragana)
                 if analysis.vowels:
                     vowel_parts.append(analysis.vowels)
-            except Exception:
-                pass
+            except (ValueError, KeyError):
+                logger.debug("Phoneme analysis failed for token: %s", reading_hiragana)
 
         return LyricsPhonemeResponse(
             reading="".join(readings),
@@ -108,7 +108,7 @@ def analyze_lyrics(request: LyricsAnalyzeRequest) -> LyricsAnalyzeResponse:
             try:
                 analysis = analyze_hiragana(reading_hiragana)
                 vowel_pattern = analysis.vowels
-            except Exception:
+            except (ValueError, KeyError):
                 logger.debug("Phoneme analysis failed for %s", token.surface)
                 vowel_pattern = ""
 

@@ -4,7 +4,7 @@ from app.services.pattern import PatternMatcher, build_pattern_from_reading
 from app.services.phoneme import (
     analyze,
     analyze_hiragana,
-    extract_phonemes_detailed,
+    extract_phonemes,
     hiragana_to_katakana,
     is_hiragana,
 )
@@ -32,8 +32,8 @@ class TestPhoneme:
         assert hiragana_to_katakana("くさ") == "クサ"
         assert hiragana_to_katakana("とうきょう") == "トウキョウ"
 
-    def test_extract_phonemes_detailed(self) -> None:
-        phonemes = extract_phonemes_detailed("クサ")
+    def test_extract_phonemes(self) -> None:
+        phonemes = extract_phonemes("クサ")
         assert len(phonemes) == 2
         assert phonemes[0].consonant == "k"
         assert phonemes[0].vowel == "u"

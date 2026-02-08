@@ -18,10 +18,7 @@ from app.services.similarity import calculate_similarity
 
 logger = logging.getLogger(__name__)
 
-# Pattern search retrieves candidates before detailed matching
-MAX_PATTERN_SEARCH_CANDIDATES = 100000
-
-router = APIRouter(prefix="/rhyme", tags=["rhyme"])
+router = APIRouter(prefix="/rhyme", tags=["rhyme-english"])
 
 
 def _get_english_index():
@@ -127,7 +124,7 @@ def search_english_rhymes(request: EnglishSearchRequest) -> EnglishSearchRespons
             consonant_pattern=consonant_pattern,
             prefix=is_prefix,
             suffix=is_suffix,
-            limit=MAX_PATTERN_SEARCH_CANDIDATES,
+            limit=settings.max_pattern_search_candidates,
         )
 
         # Score and filter matches

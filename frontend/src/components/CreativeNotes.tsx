@@ -26,6 +26,7 @@ interface CreativeNotesProps {
     text: string,
   ) => Promise<RhymeAnnotation | null>;
   onRemoveAnnotation: (entryId: string, annotationId: string) => void;
+  onUpdateAnnotation: (entryId: string, annotationId: string, color: string) => void;
   onClear: () => void;
 }
 
@@ -36,6 +37,7 @@ export function CreativeNotes({
   onRemove,
   onAddAnnotation,
   onRemoveAnnotation,
+  onUpdateAnnotation,
   onClear,
 }: CreativeNotesProps) {
   const [title, setTitle] = useState("");
@@ -205,6 +207,9 @@ export function CreativeNotes({
                       }
                       onRemoveAnnotation={(annotationId) =>
                         onRemoveAnnotation(entry.id, annotationId)
+                      }
+                      onUpdateAnnotation={(annotationId, color) =>
+                        onUpdateAnnotation(entry.id, annotationId, color)
                       }
                     />
                   </div>

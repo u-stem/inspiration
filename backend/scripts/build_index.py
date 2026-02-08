@@ -341,16 +341,19 @@ def select_reading(dict_reading: str, surface: str) -> str:
     """Select the best reading using hybrid approach.
 
     Rules:
-    - If dict reading is more than 1.3x longer than Sudachi reading,
+    - If dict reading is significantly longer than Sudachi reading,
       use Sudachi (likely a concatenated reading error in dictionary)
     - Otherwise use dict reading (preserves proper nouns like anime titles)
     """
+    # Empirically determined: dictionary entries with readings >30% longer
+    # than Sudachi readings are typically concatenation errors
+    _READING_LENGTH_RATIO_THRESHOLD = 1.3
+
     sudachi_reading = get_reading_from_sudachi(surface)
     if not sudachi_reading:
         return dict_reading
 
-    # If dict reading is significantly longer, it's likely a concatenated error
-    if len(dict_reading) > len(sudachi_reading) * 1.3:
+    if len(dict_reading) > len(sudachi_reading) * _READING_LENGTH_RATIO_THRESHOLD:
         return sudachi_reading
 
     return dict_reading
@@ -554,10 +557,10 @@ def add_words_to_index(
     """
     index = RhymeIndex(db_path=db_path)
 
-    # Get existing words
+    # Get existing words using iterator to avoid loading all into memory
     conn = index._get_conn()
     cursor = conn.execute("SELECT word FROM words")
-    existing = {row[0] for row in cursor.fetchall()}
+    existing = {row[0] for row in cursor}
 
     added = 0
     for word, reading in words:

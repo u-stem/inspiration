@@ -42,7 +42,8 @@ export function createLocalStorageStore<T>(
         return cache.data;
       }
       cache.data = parsed.filter(validate) as T;
-    } catch {
+    } catch (e) {
+      console.warn(`Failed to parse localStorage key "${key}":`, e);
       cache.data = emptyValue;
     }
     return cache.data;

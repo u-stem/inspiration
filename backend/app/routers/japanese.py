@@ -13,7 +13,7 @@ from app.models.schemas import (
 )
 from app.services.pattern import PatternMatcher
 from app.services.phoneme import (
-    extract_phonemes_detailed,
+    extract_phonemes,
     is_hiragana,
     katakana_to_hiragana,
 )
@@ -23,10 +23,7 @@ from app.services.similarity import calculate_similarity
 
 logger = logging.getLogger(__name__)
 
-# Pattern search retrieves candidates before detailed matching
-MAX_PATTERN_SEARCH_CANDIDATES = 100000
-
-router = APIRouter(prefix="/rhyme", tags=["rhyme"])
+router = APIRouter(prefix="/rhyme", tags=["rhyme-search"])
 
 
 def _get_index():
@@ -63,7 +60,7 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
             consonant_pattern=consonant_pattern,
             prefix=is_prefix,
             suffix=is_suffix,
-            limit=MAX_PATTERN_SEARCH_CANDIDATES,
+            limit=settings.max_pattern_search_candidates,
         )
 
         matches: list[tuple[int, tuple[int, int], Any]] = []  # (score, priority, entry)
@@ -95,7 +92,7 @@ def search_rhymes(request: PatternSearchRequest) -> PatternSearchResponse:
 
         results = []
         for score, _, entry in page_matches:
-            phonemes_raw = extract_phonemes_detailed(entry.reading)
+            phonemes_raw = extract_phonemes(entry.reading)
             phonemes = [
                 Phoneme(
                     consonant=p.consonant,

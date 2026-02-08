@@ -131,7 +131,7 @@ class EnglishSearchResponse(BaseModel):
 class LyricsAnalyzeRequest(BaseModel):
     """歌詞解析リクエスト"""
 
-    text: str = Field(..., min_length=1, max_length=10000, description="Lyrics text to analyze")
+    text: str = Field(..., min_length=1, max_length=5000, description="Lyrics text to analyze")
 
 
 class LyricsWord(BaseModel):
